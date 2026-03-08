@@ -1,0 +1,4 @@
+Servidor SMTP: smtp.gmail.com
+Porta: 587
+Utilizador SMTP: condessasilva@gmail.com
+Password SMTP: soeb clnq qozy tauv
