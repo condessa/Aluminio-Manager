@@ -42,12 +42,14 @@ def _html_orcamento(obra, cliente, oficina, com_iva=True):
         except:
             return str(d)
 
-    emp_lines = f"<b style='font-size:16pt;color:#d4560a;'>{nome_emp}</b><br/>"
-    if nif_emp:    emp_lines += f"NIF: {nif_emp}<br/>"
-    if morada_emp: emp_lines += f"{morada_emp}<br/>"
-    if local_emp:  emp_lines += f"{local_emp}<br/>"
-    if tel_emp:    emp_lines += f"Tel: {tel_emp}<br/>"
-    if email_emp:  emp_lines += f"{email_emp}"
+    # ── Linha de info da empresa (compacta, inline) ───────────────────────
+    emp_info_parts = []
+    if nif_emp:    emp_info_parts.append(f"NIF: {nif_emp}")
+    if morada_emp: emp_info_parts.append(morada_emp)
+    if local_emp:  emp_info_parts.append(local_emp)
+    if tel_emp:    emp_info_parts.append(f"Tel: {tel_emp}")
+    if email_emp:  emp_info_parts.append(email_emp)
+    emp_info_inline = "  &middot;  ".join(emp_info_parts)
 
     cli_lines = f"<b>{nome_cli}</b><br/>"
     if nif_cli:    cli_lines += f"NIF: {nif_cli}<br/>"
@@ -89,15 +91,35 @@ def _html_orcamento(obra, cliente, oficina, com_iva=True):
   .total-final td {{ background: #d4560a; color: white; font-weight: bold; font-size: 12pt; padding: 7px 10px; }}
   .validade {{ background: #fff3cd; border: 1px solid #ffc107; padding: 8px 12px; font-size: 9pt; color: #856404; margin-top: 12px; }}
   .footer {{ border-top: 1px solid #e8edf2; padding-top: 8px; font-size: 8pt; color: #9aaabb; text-align: center; margin-top: 16px; }}
-  .assinatura-box {{ border-top: 1px solid #1a2332; width: 220px; text-align: center; padding-top: 6px; font-size: 9pt; color: #4a6080; }}
 </style>
 </head><body>
 
-<!-- CABEÇALHO -->
-<table width="100%" cellpadding="0" cellspacing="0" style="border-bottom: 3px solid #d4560a; padding-bottom: 12px; margin-bottom: 16px;">
+<!-- CABEÇALHO EMPRESA — destaque no topo, centrado -->
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="background:#1a2332; border-radius:6px; margin-bottom:0; padding:18px 24px;">
   <tr>
-    <td width="55%" valign="top" style="font-size:10pt;line-height:1.8;">{emp_lines}</td>
-    <td width="45%" valign="top" align="right">
+    <td align="center">
+      <div style="font-size:20pt; font-weight:800; color:#ffffff; letter-spacing:1px;">
+        {nome_emp}
+      </div>
+      <div style="font-size:9pt; color:rgba(255,255,255,0.7); margin-top:5px; line-height:1.8;">
+        {emp_info_inline}
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- LINHA SEPARADORA LARANJA -->
+<div style="height:4px; background:#d4560a; margin-bottom:16px;"></div>
+
+<!-- ORÇAMENTO Nº + DATAS -->
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="border-bottom: 1px solid #e8edf2; padding-bottom: 12px; margin-bottom: 16px;">
+  <tr>
+    <td width="60%" valign="middle">
+      &nbsp;
+    </td>
+    <td width="40%" valign="top" align="right">
       <h1>OR&Ccedil;AMENTO</h1>
       <div style="font-size:12pt;color:#d4560a;font-weight:bold;">N&ordm; {num}</div>
       <div style="font-size:9pt;color:#6b7c8e;">Data: {_fmt(data_ent)}</div>
@@ -251,7 +273,6 @@ class OrcamentoDialog(QDialog):
         b_email.setFixedHeight(36)
         b_email.setStyleSheet("background:#1e7e44;color:white;border:none;border-radius:8px;padding:0 20px;font-weight:600;")
         b_email.clicked.connect(self._enviar_email)
-        # Desabilitar se cliente não tem email
         email_cli = ""
         try:
             if self.obra.get("cliente_id"):
@@ -316,7 +337,6 @@ class OrcamentoDialog(QDialog):
             QMessageBox.critical(self, "Erro", str(e))
 
     def _enviar_email(self):
-        from PyQt6.QtWidgets import QProgressDialog
         try:
             cliente = None
             oficina = {}
@@ -328,13 +348,11 @@ class OrcamentoDialog(QDialog):
             oficina = {r["chave"]: r["valor"] for r in cur.fetchall()}
             cur.close(); conn.close()
 
-            # Verificar SMTP configurado
             if not oficina.get("smtp_host"):
                 QMessageBox.warning(self, "SMTP não configurado",
                     "Configure o servidor de email em\n⚙️ Configurações → Configuração de Email (SMTP)")
                 return
 
-            # Confirmar envio
             email_cli = cliente.get("email","") if cliente else ""
             r = QMessageBox.question(self, "Enviar Orçamento",
                 f"Enviar orçamento {self.obra['numero']} para:\n\n📧  {email_cli}",

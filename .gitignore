@@ -5,4 +5,35 @@ __pycache__/
 *.sqlite
 .env
 *.log
-dist/*.deb
+
+# Instaladores e builds
+dist/
+build/
+*.deb
+*.exe
+*.spec
+
+# Ficheiros sensíveis
+.pagamento.key
+.pagamento.dat
+modules/.pagamento.key
+modules/.pagamento.dat
+smtp.txt
+cert/
+*.p12
+*.pem
+
+# Backups e temporários
+Backups/
+backups/
+*.bak
+*.zip
+
+# Ficheiros de teste
+teste*.py
+testar*.py
+graficos_pdf*.py
+
+# Ficheiros antigos
+files/
+files.zip

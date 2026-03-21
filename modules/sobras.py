@@ -14,14 +14,14 @@ class SobraDialog(QDialog):
         fl=QFormLayout(); fl.setSpacing(9)
         self.cmb_mat=QComboBox(); self.cmb_mat.addItem("— Seleccionar material —",None)
         self.cmb_obra=QComboBox(); self.cmb_obra.addItem("— Sem obra —",None)
-        self.spn_qtd=QDoubleSpinBox(); self.spn_qtd.setMaximum(99999); self.spn_qtd.setDecimals(3); self.spn_qtd.setMinimum(0.001)
+        self.spn_qtd=QDoubleSpinBox(); self.spn_qtd.setMaximum(99999); self.spn_qtd.setDecimals(0); self.spn_qtd.setMinimum(0)
         self.spn_comp=QDoubleSpinBox(); self.spn_comp.setMaximum(99999); self.spn_comp.setSuffix(" cm"); self.spn_comp.setDecimals(1)
         self.cmb_estado=QComboBox(); [self.cmb_estado.addItem(e) for e in ["reutilizavel","desperdicio","vendido"]]
         self.inp_local=QLineEdit(); self.inp_local.setPlaceholderText("ex: Prateleira A3")
         self.dt_reg=QDateEdit(QDate.currentDate()); self.dt_reg.setCalendarPopup(True)
         self.inp_notas=QTextEdit(); self.inp_notas.setMaximumHeight(60)
         try:
-            for s in self.dao.listar_stock(): self.cmb_mat.addItem(f"{s['referencia']} — {s['descricao'][:40]}",s["id"])
+            for s in self.dao.listar_stock(): self.cmb_mat.addItem(f"{s['referencia']} — {s.get('nome',s.get('descricao',''))[:40]}",s["id"])
             for o in self.dao.listar_obras(): self.cmb_obra.addItem(f"{o['numero']} — {o['descricao'][:40]}",o["id"])
         except: pass
         for lbl,w in [("Material *",self.cmb_mat),("Origem (Obra)",self.cmb_obra),("Quantidade *",self.spn_qtd),
@@ -33,17 +33,29 @@ class SobraDialog(QDialog):
         bb.accepted.connect(self._guardar); bb.rejected.connect(self.reject); lay.addWidget(bb)
         if sobra: self._preencher()
     def _preencher(self):
-        s=self.sobra; self.spn_qtd.setValue(float(s.get("quantidade",0)))
-        self.spn_comp.setValue(float(s.get("comprimento_cm",0) or 0))
+        s=self.sobra
+        self.spn_qtd.setValue(float(s.get("quantidade",0)))
+        # comprimento_mm -> cm para mostrar
+        comp_mm = float(s.get("comprimento_mm",0) or 0)
+        self.spn_comp.setValue(comp_mm / 10)
         self.cmb_estado.setCurrentText(s.get("estado","reutilizavel"))
-        self.inp_local.setText(s.get("localizacao","")); self.inp_notas.setPlainText(s.get("notas",""))
+        self.inp_local.setText(s.get("localizacao","") or "")
+        self.inp_notas.setPlainText(s.get("notas","") or "")
         if s.get("data_registo"):
             try: self.dt_reg.setDate(QDate.fromString(str(s["data_registo"]),"yyyy-MM-dd"))
             except: pass
+        # Selecionar material
+        for i in range(self.cmb_mat.count()):
+            if self.cmb_mat.itemData(i) == s.get("stock_id"):
+                self.cmb_mat.setCurrentIndex(i); break
+        # Selecionar obra
+        for i in range(self.cmb_obra.count()):
+            if self.cmb_obra.itemData(i) == s.get("obra_id"):
+                self.cmb_obra.setCurrentIndex(i); break
     def _guardar(self):
         if not self.cmb_mat.currentData(): QMessageBox.warning(self,"Erro","Seleccione um material."); return
         d={"stock_id":self.cmb_mat.currentData(),"obra_id":self.cmb_obra.currentData(),
-           "quantidade":self.spn_qtd.value(),"comprimento_cm":self.spn_comp.value() or None,
+           "quantidade":self.spn_qtd.value(),"comprimento_mm":int(self.spn_comp.value() * 10) if self.spn_comp.value() else 0,
            "estado":self.cmb_estado.currentText(),"localizacao":self.inp_local.text(),
            "data_registo":self.dt_reg.date().toString("yyyy-MM-dd"),"notas":self.inp_notas.toPlainText()}
         if self.sobra: d["id"]=self.sobra["id"]
@@ -61,7 +73,13 @@ class SobrasWidget(QWidget):
         fl.addWidget(QLabel("Estado:")); fl.addWidget(self.cmb_est); fl.addStretch(); lay.addWidget(fb)
         self.table=QTableWidget(); self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["Material","Ref.","Quantidade","Comprimento","Estado","Obra","Ações"])
-        self.table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(1, 130)  # Ref
+        self.table.setColumnWidth(2, 90)   # Quantidade
+        self.table.setColumnWidth(3, 100)  # Comprimento
+        self.table.setColumnWidth(4, 110)  # Estado
+        self.table.setColumnWidth(5, 120)  # Obra
+        self.table.setColumnWidth(6, 80)   # Ações
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.verticalHeader().setVisible(False); lay.addWidget(self.table)
     def refresh(self):
@@ -69,7 +87,8 @@ class SobrasWidget(QWidget):
         except: sobras=[]
         self.table.setRowCount(len(sobras))
         for r,s in enumerate(sobras):
-            comp=f"{s['comprimento_cm']} cm" if s.get("comprimento_cm") else "—"
+            comp_mm = float(s.get('comprimento_mm',0) or 0)
+            comp=f"{comp_mm/10:.1f} cm" if comp_mm else "—"
             vals=[s.get("material","—"),s.get("referencia","—"),f"{s['quantidade']} {s.get('unidade','')}",comp,"",s.get("obra_numero","—")]
             for c,v in enumerate(vals):
                 item=QTableWidgetItem(v); item.setData(Qt.ItemDataRole.UserRole,s["id"]); self.table.setItem(r,c,item)
@@ -78,8 +97,8 @@ class SobrasWidget(QWidget):
             el.setStyleSheet(f"background:{bg};color:{fg};border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;margin:4px;")
             self.table.setCellWidget(r,4,el)
             acoes=QWidget(); al=QHBoxLayout(acoes); al.setContentsMargins(4,2,4,2)
-            be=_btn("✏️","btn_outline"); be.setFixedHeight(26); be.clicked.connect(lambda _,sid=s["id"]: self._editar(sid))
-            bd=_btn("🗑️","btn_danger"); bd.setFixedHeight(26); bd.clicked.connect(lambda _,sid=s["id"]: self._eliminar(sid))
+            be=_btn("✏️","btn_outline"); be.setFixedHeight(26); be.setToolTip("Editar sobra"); be.clicked.connect(lambda _,sid=s["id"]: self._editar(sid))
+            bd=_btn("🗑️","btn_danger"); bd.setFixedHeight(26); bd.setToolTip("Eliminar sobra"); bd.clicked.connect(lambda _,sid=s["id"]: self._eliminar(sid))
             al.addWidget(be); al.addWidget(bd); self.table.setCellWidget(r,6,acoes)
         self.table.resizeRowsToContents()
     def novo(self):

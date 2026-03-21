@@ -45,9 +45,32 @@ CREATE TABLE IF NOT EXISTS sobras (id INT AUTO_INCREMENT PRIMARY KEY, stock_id I
 CREATE TABLE IF NOT EXISTS financeiro (id INT AUTO_INCREMENT PRIMARY KEY, tipo ENUM('receita','despesa') NOT NULL, categoria VARCHAR(80), descricao VARCHAR(250) NOT NULL, valor DECIMAL(10,2) NOT NULL, data DATE NOT NULL, obra_id INT, documento VARCHAR(80), pago TINYINT(1) DEFAULT 0, notas TEXT, utilizador_id INT, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE SET NULL, FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE SET NULL) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS funcionarios (id INT AUTO_INCREMENT PRIMARY KEY, nome VARCHAR(150) NOT NULL, funcao VARCHAR(80), telefone VARCHAR(20), email VARCHAR(120), nif VARCHAR(20), data_entrada DATE, salario DECIMAL(8,2) DEFAULT 0, ativo TINYINT(1) DEFAULT 1, notas TEXT, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS tarefas (id INT AUTO_INCREMENT PRIMARY KEY, titulo VARCHAR(250) NOT NULL, descricao TEXT, categoria VARCHAR(80), prioridade ENUM('baixa','media','alta','urgente') DEFAULT 'media', estado ENUM('pendente','em_curso','concluida','cancelada') DEFAULT 'pendente', data_limite DATE, obra_id INT, atribuido_a INT, criado_por INT, concluido_em DATETIME, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE SET NULL, FOREIGN KEY (atribuido_a) REFERENCES utilizadores(id) ON DELETE SET NULL, FOREIGN KEY (criado_por) REFERENCES utilizadores(id) ON DELETE SET NULL) ENGINE=InnoDB;
-INSERT IGNORE INTO utilizadores (nome,username,password_hash,perfil) VALUES ('Administrador','admin',SHA2('admin123',256),'admin');
+-- Admin criado pelo assistente de configuração inicial
+
+CREATE TABLE IF NOT EXISTS obra_anexos (id INT AUTO_INCREMENT PRIMARY KEY, obra_id INT NOT NULL, nome_ficheiro VARCHAR(255), caminho VARCHAR(500), tipo VARCHAR(50), tamanho INT DEFAULT 0, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS obra_historico (id INT AUTO_INCREMENT PRIMARY KEY, obra_id INT NOT NULL, utilizador_id INT, utilizador_nome VARCHAR(120), acao VARCHAR(100), detalhe TEXT, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS obra_fases (id INT AUTO_INCREMENT PRIMARY KEY, obra_id INT NOT NULL, nome VARCHAR(100), estado ENUM('pendente','em_curso','concluida') DEFAULT 'pendente', responsavel_id INT, data_inicio DATE, data_fim DATE, notas TEXT, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS fornecedores (id INT AUTO_INCREMENT PRIMARY KEY, nome VARCHAR(150) NOT NULL, nif VARCHAR(20), telefone VARCHAR(20), telemovel VARCHAR(20), email VARCHAR(120), morada VARCHAR(200), localidade VARCHAR(100), cp VARCHAR(10), notas TEXT, ativo TINYINT(1) DEFAULT 1, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS stock_fornecedores (id INT AUTO_INCREMENT PRIMARY KEY, stock_id INT NOT NULL, fornecedor_id INT NOT NULL, referencia_fornecedor VARCHAR(80), preco_compra DECIMAL(10,2) DEFAULT 0.00, prazo_entrega_dias INT DEFAULT 0, fornecedor_principal TINYINT(1) DEFAULT 0, FOREIGN KEY (stock_id) REFERENCES stock(id) ON DELETE CASCADE, FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id) ON DELETE CASCADE, UNIQUE KEY uq_stock_fornecedor (stock_id, fornecedor_id)) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS eventos (id INT AUTO_INCREMENT PRIMARY KEY, titulo VARCHAR(150) NOT NULL, tipo ENUM('reuniao','entrega','manutencao','outro') DEFAULT 'outro', data DATE NOT NULL, descricao TEXT, utilizador_id INT, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE SET NULL) ENGINE=InnoDB;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS telemovel VARCHAR(20) DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS email VARCHAR(120) DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS especialidade VARCHAR(80) DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS data_admissao DATE DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS data_nascimento DATE DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS salario_base DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS nif VARCHAR(20) DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS num_seg_social VARCHAR(20) DEFAULT NULL;
+ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS notas TEXT DEFAULT NULL;
+ALTER TABLE obras ADD COLUMN IF NOT EXISTS tipo_obra VARCHAR(80) DEFAULT NULL;
+ALTER TABLE obras ADD COLUMN IF NOT EXISTS em_espera TINYINT(1) DEFAULT 0;
+
+ALTER TABLE obras ADD COLUMN IF NOT EXISTS notificar_cliente TINYINT(1) DEFAULT 0;
+ALTER TABLE obras ADD COLUMN IF NOT EXISTS valor_pago DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE sobras ADD COLUMN IF NOT EXISTS estado ENUM('reutilizavel','desperdicio','vendido') DEFAULT 'reutilizavel';
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS tipo VARCHAR(50) DEFAULT 'Cliente';
 INSERT IGNORE INTO stock_categorias (nome,cor) VALUES ('Perfis de Alumínio','#607d8b'),('Vidros','#29b6f6'),('Ferragens','#8d6e63'),('Borrachas e Vedantes','#66bb6a'),('Parafusos e Fixações','#ffa726'),('Tintas e Acabamentos','#ab47bc'),('Consumíveis','#ef5350');
-INSERT IGNORE INTO oficina (chave,valor) VALUES ('nome','Alumínios'),('nif',''),('morada',''),('telefone',''),('email',''),('responsavel','');
+INSERT IGNORE INTO oficina (chave,valor) VALUES ('nome',''),('nif',''),('morada',''),('localidade',''),('telefone',''),('telemovel',''),('email',''),('responsavel',''),('iban',''),('smtp_host',''),('smtp_port','');
 """
 
 def criar_base_dados():

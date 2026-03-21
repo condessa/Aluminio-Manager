@@ -1,0 +1,13 @@
+mysql -u aluminio_user -paluminio_pass aluminio_manager -e "
+SET FOREIGN_KEY_CHECKS=0;
+TRUNCATE TABLE financeiro;
+TRUNCATE TABLE stock_movimentos;
+TRUNCATE TABLE obra_fases;
+TRUNCATE TABLE obras;
+TRUNCATE TABLE stock;
+TRUNCATE TABLE clientes;
+TRUNCATE TABLE funcionarios;
+TRUNCATE TABLE utilizadores;
+SET FOREIGN_KEY_CHECKS=1;
+INSERT INTO utilizadores (nome, username, password_hash, perfil, ativo)
+VALUES ('Administrador', 'admin', SHA2('admin123', 256), 'admin', 1);"

@@ -73,6 +73,24 @@ def mover_stock(stock_id, tipo, qtd, motivo="", obra_id=None, user_id=None, cria
         (stock_id,tipo,qtd,motivo,obra_id,user_id))
     conn.commit(); cur.close(); conn.close()
 
+def get_stock_by_ref(ref):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    cur.execute("SELECT id FROM stock WHERE referencia=%s",(ref,))
+    r=cur.fetchone(); cur.close(); conn.close()
+    return r["id"] if r else None
+
+def listar_movimentos_stock(stock_id):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    cur.execute("""
+        SELECT sm.*, u.nome AS utilizador_nome, o.numero AS obra_numero
+        FROM stock_movimentos sm
+        LEFT JOIN utilizadores u ON sm.utilizador_id=u.id
+        LEFT JOIN obras o ON sm.obra_id=o.id
+        WHERE sm.stock_id=%s
+        ORDER BY sm.criado_em DESC
+    """, (stock_id,))
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
 def listar_categorias_stock():
     conn=_conn(); cur=conn.cursor(dictionary=True)
     cur.execute("SELECT * FROM stock_categorias ORDER BY nome")
@@ -83,7 +101,7 @@ def listar_obras(filtro="", estado=None):
     conn=_conn(); cur=conn.cursor(dictionary=True)
     sql="SELECT o.*,c.nome AS cliente_nome FROM obras o LEFT JOIN clientes c ON o.cliente_id=c.id WHERE 1=1"
     p=[]
-    if filtro: sql+=" AND (o.numero LIKE %s OR o.descricao LIKE %s OR c.nome LIKE %s)"; f=f"%{filtro}%"; p+=[f,f,f]
+    if filtro: sql+=" AND (LOWER(o.numero) LIKE LOWER(%s) OR LOWER(o.descricao) LIKE LOWER(%s) OR LOWER(c.nome) LIKE LOWER(%s))"; f=f"%{filtro}%"; p+=[f,f,f]
     if estado: sql+=" AND o.estado=%s"; p.append(estado)
     sql+=" ORDER BY o.criado_em DESC"
     cur.execute(sql,p); r=cur.fetchall(); cur.close(); conn.close(); return r
@@ -95,24 +113,27 @@ def get_obra(oid):
 
 def proximo_numero_obra():
     from datetime import date
+    ano = date.today().year
     conn=_conn(); cur=conn.cursor()
-    cur.execute("SELECT COUNT(*)+1 AS n FROM obras"); n=cur.fetchone()[0]
+    cur.execute("SELECT MAX(CAST(SUBSTRING_INDEX(numero,'-',-1) AS UNSIGNED)) FROM obras WHERE numero LIKE %s", (f"OBR-{ano}-%",))
+    row = cur.fetchone()[0]
     cur.close(); conn.close()
-    return f"OBR-{date.today().year}-{n:04d}"
+    n = (row or 0) + 1
+    return f"OBR-{ano}-{n:04d}"
 
 def salvar_obra(d):
     conn=_conn(); cur=conn.cursor()
     if d.get("id"):
-        cur.execute("UPDATE obras SET numero=%s,cliente_id=%s,descricao=%s,morada_obra=%s,estado=%s,prioridade=%s,data_entrada=%s,data_prevista=%s,valor_orcamento=%s,valor_faturado=%s,valor_pago=%s,notas=%s WHERE id=%s",
+        cur.execute("UPDATE obras SET numero=%s,cliente_id=%s,descricao=%s,morada_obra=%s,estado=%s,prioridade=%s,tipo_obra=%s,data_entrada=%s,data_prevista=%s,valor_orcamento=%s,valor_faturado=%s,valor_pago=%s,notas=%s,notificar_cliente=%s WHERE id=%s",
             (d["numero"],d.get("cliente_id"),d.get("descricao",""),d.get("morada_obra",""),
-             d.get("estado","orcamento"),d.get("prioridade","normal"),d.get("data_entrada"),
-             d.get("data_prevista"),d.get("valor_orcamento",0),d.get("valor_faturado",0),d.get("valor_pago",0),d.get("notas",""),d["id"]))
+             d.get("estado","orcamento"),d.get("prioridade","normal"),d.get("tipo_obra"),d.get("data_entrada"),
+             d.get("data_prevista"),d.get("valor_orcamento",0),d.get("valor_faturado",0),d.get("valor_pago",0),d.get("notas",""),d.get("notificar_cliente",0),d["id"]))
         oid=d["id"]
     else:
-        cur.execute("INSERT INTO obras (numero,cliente_id,descricao,morada_obra,estado,prioridade,data_entrada,data_prevista,valor_orcamento,notas,criado_por) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        cur.execute("INSERT INTO obras (numero,cliente_id,descricao,morada_obra,estado,prioridade,tipo_obra,data_entrada,data_prevista,valor_orcamento,notas,criado_por,notificar_cliente) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (d["numero"],d.get("cliente_id"),d.get("descricao",""),d.get("morada_obra",""),
-             d.get("estado","orcamento"),d.get("prioridade","normal"),d.get("data_entrada"),
-             d.get("data_prevista"),d.get("valor_orcamento",0),d.get("notas",""),d.get("criado_por")))
+             d.get("estado","orcamento"),d.get("prioridade","normal"),d.get("tipo_obra"),d.get("data_entrada"),
+             d.get("data_prevista"),d.get("valor_orcamento",0),d.get("notas",""),d.get("criado_por"),d.get("notificar_cliente",0)))
         oid=cur.lastrowid
     conn.commit(); cur.close(); conn.close(); return oid
 
@@ -201,13 +222,13 @@ def listar_sobras(aproveitavel=None):
 def salvar_sobra(d):
     conn=_conn(); cur=conn.cursor()
     if d.get("id"):
-        cur.execute("UPDATE sobras SET stock_id=%s,obra_id=%s,descricao=%s,comprimento_mm=%s,quantidade=%s,unidade=%s,aproveitavel=%s,localizacao=%s WHERE id=%s",
+        cur.execute("UPDATE sobras SET stock_id=%s,obra_id=%s,descricao=%s,comprimento_mm=%s,quantidade=%s,unidade=%s,aproveitavel=%s,localizacao=%s,estado=%s WHERE id=%s",
             (d["stock_id"],d.get("obra_id"),d.get("descricao",""),d.get("comprimento_mm",0),
-             d.get("quantidade",1),d.get("unidade","un"),d.get("aproveitavel",1),d.get("localizacao",""),d["id"]))
+             d.get("quantidade",1),d.get("unidade","un"),d.get("aproveitavel",1),d.get("localizacao",""),d.get("estado","reutilizavel"),d["id"]))
     else:
-        cur.execute("INSERT INTO sobras (stock_id,obra_id,descricao,comprimento_mm,quantidade,unidade,aproveitavel,localizacao) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+        cur.execute("INSERT INTO sobras (stock_id,obra_id,descricao,comprimento_mm,quantidade,unidade,aproveitavel,localizacao,estado) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (d["stock_id"],d.get("obra_id"),d.get("descricao",""),d.get("comprimento_mm",0),
-             d.get("quantidade",1),d.get("unidade","un"),d.get("aproveitavel",1),d.get("localizacao","")))
+             d.get("quantidade",1),d.get("unidade","un"),d.get("aproveitavel",1),d.get("localizacao",""),d.get("estado","reutilizavel")))
     conn.commit(); cur.close(); conn.close()
 
 # ── Funcionários ──────────────────────────────────────────────────────────────
@@ -305,20 +326,63 @@ def atualizar_fase(fase_id, estado, funcionario_id=None):
 # ── Utilizadores ──────────────────────────────────────────────────────────────
 def salvar_utilizador(d):
     conn=_conn(); cur=conn.cursor()
+    campos_extra = (
+        d.get("telemovel","") or None,
+        d.get("email","") or None,
+        d.get("especialidade","") or None,
+        d.get("data_admissao") or None,
+        d.get("data_nascimento") or None,
+        d.get("salario_base") or 0.00,
+        d.get("nif","") or None,
+        d.get("num_seg_social","") or None,
+        d.get("notas","") or None,
+    )
     if d.get("id"):
         if d.get("password"):
-            cur.execute("UPDATE utilizadores SET nome=%s,username=%s,password_hash=%s,perfil=%s,ativo=%s WHERE id=%s",
-                (d["nome"],d["username"],_hash(d["password"]),d.get("perfil","producao"),d.get("ativo",1),d["id"]))
+            cur.execute("UPDATE utilizadores SET nome=%s,username=%s,password_hash=%s,perfil=%s,ativo=%s,telemovel=%s,email=%s,especialidade=%s,data_admissao=%s,data_nascimento=%s,salario_base=%s,nif=%s,num_seg_social=%s,notas=%s WHERE id=%s",
+                (d["nome"],d["username"],_hash(d["password"]),d.get("perfil","producao"),d.get("ativo",1))+campos_extra+(d["id"],))
         else:
-            cur.execute("UPDATE utilizadores SET nome=%s,username=%s,perfil=%s,ativo=%s WHERE id=%s",
-                (d["nome"],d["username"],d.get("perfil","producao"),d.get("ativo",1),d["id"]))
+            cur.execute("UPDATE utilizadores SET nome=%s,username=%s,perfil=%s,ativo=%s,telemovel=%s,email=%s,especialidade=%s,data_admissao=%s,data_nascimento=%s,salario_base=%s,nif=%s,num_seg_social=%s,notas=%s WHERE id=%s",
+                (d["nome"],d["username"],d.get("perfil","producao"),d.get("ativo",1))+campos_extra+(d["id"],))
         uid=d["id"]
     else:
-        cur.execute("INSERT INTO utilizadores (nome,username,password_hash,perfil) VALUES(%s,%s,%s,%s)",
-            (d["nome"],d["username"],_hash(d.get("password","changeme")),d.get("perfil","producao")))
+        cur.execute("INSERT INTO utilizadores (nome,username,password_hash,perfil,telemovel,email,especialidade,data_admissao,data_nascimento,salario_base,nif,num_seg_social,notas) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (d["nome"],d["username"],_hash(d.get("password","changeme")),d.get("perfil","producao"))+campos_extra)
         uid=cur.lastrowid
     conn.commit(); cur.close(); conn.close()
     return uid
+
+# ── Histórico de obras ────────────────────────────────────────────────────────
+def registar_historico(obra_id, acao, detalhe="", utilizador_id=None, utilizador_nome=None):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("INSERT INTO obra_historico (obra_id,utilizador_id,utilizador_nome,acao,detalhe) VALUES(%s,%s,%s,%s,%s)",
+                (obra_id, utilizador_id, utilizador_nome, acao, detalhe))
+    conn.commit(); cur.close(); conn.close()
+
+def listar_historico(obra_id):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM obra_historico WHERE obra_id=%s ORDER BY criado_em DESC",(obra_id,))
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+# ── Anexos de obra ────────────────────────────────────────────────────────────
+def listar_anexos(obra_id):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM obra_anexos WHERE obra_id=%s ORDER BY criado_em DESC",(obra_id,))
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def adicionar_anexo(obra_id, nome, caminho, tipo="outro", tamanho=0):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("INSERT INTO obra_anexos (obra_id,nome_ficheiro,caminho,tipo,tamanho) VALUES(%s,%s,%s,%s,%s)",
+                (obra_id, nome, caminho, tipo, tamanho))
+    conn.commit(); cur.close(); conn.close()
+
+def eliminar_anexo(anexo_id):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("SELECT caminho FROM obra_anexos WHERE id=%s",(anexo_id,))
+    row=cur.fetchone()
+    cur.execute("DELETE FROM obra_anexos WHERE id=%s",(anexo_id,))
+    conn.commit(); cur.close(); conn.close()
+    return row[0] if row else None
 
 # ── Execute genérico ──────────────────────────────────────────────────────────
 def execute(sql, params=None):
@@ -368,3 +432,88 @@ def mover_stock_completo(stock_id, tipo, qtd, motivo="", obra_id=None, user_id=N
             if motivo: desc += f" — {motivo}"
             execute("INSERT INTO financeiro (tipo,categoria,descricao,valor,data,obra_id,pago) VALUES(%s,%s,%s,%s,%s,%s,%s)",
                 ("receita", "Material", desc, valor, str(date.today()), obra_id, 1))
+
+# ─── FORNECEDORES ────────────────────────────────────────────────────────────
+def listar_fornecedores(filtro=""):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    sql="SELECT * FROM fornecedores WHERE ativo=1"
+    p=[]
+    if filtro: sql+=" AND (LOWER(nome) LIKE LOWER(%s) OR nif LIKE %s)"; f=f"%{filtro}%"; p+=[f,f]
+    sql+=" ORDER BY nome"
+    cur.execute(sql,p); r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def get_fornecedor(fid):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM fornecedores WHERE id=%s",(fid,))
+    r=cur.fetchone(); cur.close(); conn.close(); return r
+
+def salvar_fornecedor(d):
+    conn=_conn(); cur=conn.cursor()
+    if d.get("id"):
+        cur.execute("""UPDATE fornecedores SET nome=%s,nif=%s,telefone=%s,telemovel=%s,
+            email=%s,morada=%s,localidade=%s,cp=%s,notas=%s WHERE id=%s""",
+            (d["nome"],d.get("nif"),d.get("telefone"),d.get("telemovel"),
+             d.get("email"),d.get("morada"),d.get("localidade"),d.get("cp"),
+             d.get("notas"),d["id"]))
+    else:
+        cur.execute("""INSERT INTO fornecedores (nome,nif,telefone,telemovel,email,morada,localidade,cp,notas)
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (d["nome"],d.get("nif"),d.get("telefone"),d.get("telemovel"),
+             d.get("email"),d.get("morada"),d.get("localidade"),d.get("cp"),d.get("notas")))
+    conn.commit(); cur.close(); conn.close()
+
+def eliminar_fornecedor(fid):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("UPDATE fornecedores SET ativo=0 WHERE id=%s",(fid,))
+    conn.commit(); cur.close(); conn.close()
+
+def listar_fornecedores_stock(stock_id):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    cur.execute("""SELECT sf.*,f.nome,f.telefone,f.telemovel,f.email
+        FROM stock_fornecedores sf JOIN fornecedores f ON sf.fornecedor_id=f.id
+        WHERE sf.stock_id=%s ORDER BY sf.fornecedor_principal DESC,f.nome""", (stock_id,))
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def associar_fornecedor_stock(stock_id, fornecedor_id, ref="", preco=0, prazo=0, principal=0):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("""INSERT INTO stock_fornecedores (stock_id,fornecedor_id,referencia_fornecedor,preco_compra,prazo_entrega_dias,fornecedor_principal)
+        VALUES(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE
+        referencia_fornecedor=%s,preco_compra=%s,prazo_entrega_dias=%s,fornecedor_principal=%s""",
+        (stock_id,fornecedor_id,ref,preco,prazo,principal,ref,preco,prazo,principal))
+    conn.commit(); cur.close(); conn.close()
+
+def remover_fornecedor_stock(stock_id, fornecedor_id):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("DELETE FROM stock_fornecedores WHERE stock_id=%s AND fornecedor_id=%s",(stock_id,fornecedor_id))
+    conn.commit(); cur.close(); conn.close()
+
+def definir_fornecedor_principal(stock_id, fornecedor_id):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("UPDATE stock_fornecedores SET fornecedor_principal=0 WHERE stock_id=%s",(stock_id,))
+    cur.execute("UPDATE stock_fornecedores SET fornecedor_principal=1 WHERE stock_id=%s AND fornecedor_id=%s",(stock_id,fornecedor_id))
+    conn.commit(); cur.close(); conn.close()
+
+
+# ─── EVENTOS / CALENDÁRIO ────────────────────────────────────────────────────
+def listar_eventos(ano=None, mes=None):
+    conn=_conn(); cur=conn.cursor(dictionary=True)
+    if ano and mes:
+        cur.execute("SELECT * FROM eventos WHERE YEAR(data)=%s AND MONTH(data)=%s ORDER BY data",(ano,mes))
+    else:
+        cur.execute("SELECT * FROM eventos ORDER BY data DESC")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def salvar_evento(d):
+    conn=_conn(); cur=conn.cursor()
+    if d.get("id"):
+        cur.execute("UPDATE eventos SET titulo=%s,tipo=%s,data=%s,descricao=%s WHERE id=%s",
+            (d["titulo"],d["tipo"],d["data"],d.get("descricao"),d["id"]))
+    else:
+        cur.execute("INSERT INTO eventos (titulo,tipo,data,descricao) VALUES(%s,%s,%s,%s)",
+            (d["titulo"],d["tipo"],d["data"],d.get("descricao")))
+    conn.commit(); cur.close(); conn.close()
+
+def eliminar_evento(eid):
+    conn=_conn(); cur=conn.cursor()
+    cur.execute("DELETE FROM eventos WHERE id=%s",(eid,))
+    conn.commit(); cur.close(); conn.close()

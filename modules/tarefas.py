@@ -102,7 +102,13 @@ class TarefasWidget(QWidget):
         # Tabela
         self.table=QTableWidget(); self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["Título","Categoria","Prioridade","Estado","Atribuído a","Data Limite","Ações"])
-        self.table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(1, 110)  # Categoria
+        self.table.setColumnWidth(2, 90)   # Prioridade
+        self.table.setColumnWidth(3, 90)   # Estado
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(5, 100)  # Data Limite
+        self.table.setColumnWidth(6, 90)   # Ações
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)

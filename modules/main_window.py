@@ -1,8 +1,23 @@
 from PyQt6.QtCore import QTimer
+
+def cor_fundo():
+    return "#f0f4f8"
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QLabel, QPushButton, QStackedWidget, QMessageBox, QFrame, QHBoxLayout)
 from PyQt6.QtCore import Qt
 import modules.dao as dao
+
+def cor_fundo():
+    return "#f0f4f8"
+
+
+def cor_fundo():
+    return "#f0f4f8"
+
+
+def cor_fundo():
+    return "#f0f4f8"
+
 
 class MainWindow(QMainWindow):
     def __init__(self, utilizador):
@@ -20,6 +35,8 @@ class MainWindow(QMainWindow):
         from modules.tarefas      import TarefasWidget
         from modules.sobras       import SobrasWidget
         from modules.funcionarios import FuncionariosWidget
+        from modules.fornecedores import FornecedoresWidget
+        from modules.calendario import CalendarioWidget
         from modules.relatorios   import RelatoriosWidget
 
         self._pages = {
@@ -28,9 +45,11 @@ class MainWindow(QMainWindow):
             "clientes":     ("👥  Clientes",      ClientesWidget(dao, utilizador)),
             "stock":        ("📦  Stock",          StockWidget(dao, utilizador)),
             "financeiro":   ("💶  Financeiro",    FinanceiroWidget(dao, utilizador) if utilizador.get("perfil")=="admin" else QWidget()),
+            "calendario":   ("📅  Calendário",  CalendarioWidget(dao, utilizador)),
             "tarefas":      ("✓  Tarefas",        TarefasWidget(dao, utilizador)),
             "sobras":       ("♻️  Sobras",          SobrasWidget(dao, utilizador)),
             "funcionarios": ("👷  Funcionários",   FuncionariosWidget(dao, utilizador)),
+            "fornecedores": ("🏭  Fornecedores",   FornecedoresWidget(dao, utilizador)),
             "relatorios":   ("📊  Relatórios",     RelatoriosWidget(dao, utilizador)),
         }
         # Sinal para logout
@@ -125,16 +144,16 @@ class MainWindow(QMainWindow):
         perfil = self.utilizador.get("perfil","")
         # Permissões por perfil
         ACESSO = {
-            "admin":    ["dashboard","obras","clientes","stock","sobras","funcionarios","financeiro","tarefas","relatorios"],
-            "gestor":   ["dashboard","obras","clientes","stock","sobras","tarefas","relatorios"],
+            "admin":    ["dashboard","obras","clientes","stock","sobras","funcionarios","fornecedores","financeiro","calendario","tarefas","relatorios"],
+            "gestor":   ["dashboard","obras","clientes","stock","sobras","fornecedores","financeiro","calendario","tarefas","relatorios"],
             "producao": ["dashboard","obras","stock","sobras","tarefas"],
             "vendas":   ["dashboard","obras","clientes","tarefas"],
         }
         permitidos = ACESSO.get(perfil, ["dashboard"])
         for sec, keys in [
             ("GESTÃO",  ["dashboard","obras","clientes"]),
-            ("OFICINA", ["stock","sobras","funcionarios"]),
-            ("ADMIN",   ["financeiro","tarefas","relatorios"]),
+            ("OFICINA", ["stock","sobras","funcionarios","fornecedores"]),
+            ("ADMIN",   ["financeiro","calendario","tarefas","relatorios"]),
         ]:
             sl = QLabel(sec); sl.setStyleSheet("font-size:10px;letter-spacing:2px;color:#9aaabb;font-weight:500;padding:10px 10px 4px;")
             nl.addWidget(sl)
@@ -183,6 +202,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.tb_title); lay.addStretch(); lay.addWidget(self.tb_add)
         return tb
 
+
     def _nav(self, key):
         self._current = key
         label, widget = self._pages[key]
@@ -229,7 +249,7 @@ class MainWindow(QMainWindow):
         dlg = QDialog(self); dlg.setWindowTitle("Sessão bloqueada")
         dlg.setFixedSize(400, 320)
         dlg.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowTitleHint)
-        dlg.setStyleSheet("background:#f8fafc;")
+        dlg.setStyleSheet(f"background:{cor_fundo()};")
         lay = QVBoxLayout(dlg); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
 
         # Cabeçalho escuro
@@ -248,7 +268,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(header)
 
         # Corpo
-        body = QWidget(); body.setStyleSheet("background:#f8fafc;")
+        body = QWidget(); body.setStyleSheet(f"background:{cor_fundo()};")
         bl2 = QVBoxLayout(body); bl2.setContentsMargins(32,24,32,24); bl2.setSpacing(12)
         t3 = QLabel("Introduza a sua palavra-passe para continuar")
         t3.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -337,36 +357,18 @@ class MainWindow(QMainWindow):
         a_perfis = QAction("👥  Perfis de Utilizador", self); a_perfis.triggered.connect(self._ajuda_perfis)
         a_orc = QAction("📋  Como criar um Orçamento", self); a_orc.triggered.connect(self._ajuda_orcamento)
         a_sobre = QAction("ℹ️  Sobre", self); a_sobre.triggered.connect(self._sobre)
+        a_novidades = QAction("🆕  Novidades v1.1.0", self); a_novidades.triggered.connect(self._ajuda_novidades)
         m_ajuda.addAction(a_email); m_ajuda.addAction(a_perfis)
-        m_ajuda.addAction(a_orc); m_ajuda.addSeparator(); m_ajuda.addAction(a_sobre)
+        m_ajuda.addAction(a_orc); m_ajuda.addAction(a_novidades)
+        m_ajuda.addSeparator(); m_ajuda.addAction(a_sobre)
 
     def _ajuda_email(self):
-        self._mostrar_ajuda("📧  Configurar Envio de Email", """
-<h2 style='color:#d4560a;'>Configurar Envio de Email</h2>
-<p>Para enviar orçamentos por email, configure o servidor SMTP em <b>⚙ Configurações → Email SMTP</b>.</p>
-<h3 style='color:#1a2332;'>Gmail (recomendado)</h3>
-<ol>
-<li>Aceda a <b>myaccount.google.com</b></li>
-<li>Clique em <b>Segurança e início de sessão</b></li>
-<li>Active a <b>Verificação em dois passos</b></li>
-<li>Aceda a <b>myaccount.google.com/apppasswords</b></li>
-<li>Escolha <b>"Outra"</b> → escreva <i>AluminioManager</i> → clique <b>Gerar</b></li>
-<li>Copie a password de <b>16 caracteres</b> gerada</li>
-</ol>
-<table border='0' cellpadding='6' style='background:#f0f4f8;border-radius:8px;width:100%;'>
-<tr><td><b>Servidor SMTP:</b></td><td>smtp.gmail.com</td></tr>
-<tr><td><b>Porta:</b></td><td>587</td></tr>
-<tr><td><b>Utilizador:</b></td><td>o seu email Gmail</td></tr>
-<tr><td><b>Password:</b></td><td>a App Password de 16 caracteres</td></tr>
-</table>
-<h3 style='color:#1a2332;margin-top:16px;'>Outlook / Hotmail</h3>
-<table border='0' cellpadding='6' style='background:#f0f4f8;border-radius:8px;width:100%;'>
-<tr><td><b>Servidor SMTP:</b></td><td>smtp.office365.com</td></tr>
-<tr><td><b>Porta:</b></td><td>587</td></tr>
-<tr><td><b>Utilizador:</b></td><td>o seu email Outlook</td></tr>
-<tr><td><b>Password:</b></td><td>a sua password normal</td></tr>
-</table>
-<p style='color:#6b7c8e;font-size:11px;margin-top:16px;'>⚠️ Nunca partilhe as suas credenciais de email com terceiros.</p>
+        self._mostrar_ajuda("📧  Envio de Email", """
+<h2 style='color:#d4560a;'>Envio de Email</h2>
+<p>Os orçamentos são enviados automaticamente por email ao cliente através da conta da aplicação.</p>
+<p>✅ <b>Não é necessária qualquer configuração</b> — o envio está pronto a usar.</p>
+<p>Basta que o cliente tenha o email registado na sua ficha e clicar em <b>Ações → Enviar Orçamento</b>.</p>
+<p style='color:#6b7c8e;font-size:11px;margin-top:16px;'>Para suporte contacte: condessasilva@gmail.com</p>
 """)
 
     def _ajuda_perfis(self):
@@ -403,18 +405,40 @@ class MainWindow(QMainWindow):
 <p style='color:#6b7c8e;font-size:11px;'>⚠️ O cliente precisa de ter email registado na sua ficha.</p>
 """)
 
+    def _ajuda_novidades(self):
+        self._mostrar_ajuda("🆕  Novidades v1.1.0", """
+<h2 style='color:#d4560a;'>Novidades na versão 1.1.0</h2>
+<h3 style='color:#1a2332;'>📤 Exportação de dados</h3>
+<p>Exportação para Excel (.xlsx) e CSV em todas as listas: Obras, Clientes, Stock, Financeiro e Fornecedores.</p>
+<h3 style='color:#1a2332;'>📋 Histórico de movimentos de Stock</h3>
+<p>Cada artigo de stock tem agora um registo completo de todas as entradas, saídas e ajustes.</p>
+<h3 style='color:#1a2332;'>🏭 Fornecedores</h3>
+<p>Novo módulo de fornecedores com associação a artigos de stock e seleção de fornecedor nas entradas.</p>
+<h3 style='color:#1a2332;'>📅 Calendário</h3>
+<p>Novo módulo de calendário com visualização de obras, tarefas e eventos. Suporte a aniversários de funcionários com lembretes automáticos.</p>
+<h3 style='color:#1a2332;'>🎂 Lembretes de aniversário</h3>
+<p>Na abertura do programa são mostrados lembretes dos aniversários do dia e do dia seguinte.</p>
+<h3 style='color:#1a2332;'>🔍 Pesquisa melhorada</h3>
+<p>A pesquisa em Obras é agora insensível a maiúsculas/minúsculas e ignora automaticamente o filtro de estado.</p>
+<h3 style='color:#1a2332;'>⚙️ Configuração inicial</h3>
+<p>Novo assistente de configuração inicial com criação de conta de administrador personalizada.</p>
+""")
+
     def _sobre(self):
-        self._mostrar_ajuda("ℹ️  Sobre", """
+        from version import VERSION
+        self._mostrar_ajuda("ℹ️  Sobre", f"""
 <div style='text-align:center;padding:20px;'>
 <h1 style='color:#d4560a;font-size:24px;'>⚙️  Aluminios Manager</h1>
 <p style='color:#6b7c8e;'>by HCsoftware</p>
-<p style='margin-top:16px;font-size:13px;'>Sistema de gestão para oficinas de alumínio e caixilharia.</p>
+<p style='margin-top:16px;font-size:13px;'>Sistema de gestão completo para oficinas de alumínio e caixilharia.</p>
 <hr style='border:none;border-top:1px solid #e8edf2;margin:20px 0;'/>
 <table border='0' cellpadding='6' style='margin:0 auto;font-size:12px;'>
-<tr><td style='color:#6b7c8e;'>Versão:</td><td><b>1.0.0</b></td></tr>
+<tr><td style='color:#6b7c8e;'>Versão:</td><td><b>{VERSION}</b></td></tr>
 <tr><td style='color:#6b7c8e;'>Desenvolvido por:</td><td><b>HCsoftware</b></td></tr>
+<tr><td style='color:#6b7c8e;'>Contacto:</td><td><b>condessasilva@gmail.com</b></td></tr>
 <tr><td style='color:#6b7c8e;'>Plataforma:</td><td><b>Python 3 + PyQt6</b></td></tr>
 <tr><td style='color:#6b7c8e;'>Base de dados:</td><td><b>MySQL / MariaDB</b></td></tr>
+<tr><td style='color:#6b7c8e;'>Licença:</td><td><b>Proprietária — HCsoftware</b></td></tr>
 </table>
 <hr style='border:none;border-top:1px solid #e8edf2;margin:20px 0;'/>
 <p style='color:#9aaabb;font-size:10px;'>© 2026 HCsoftware — Todos os direitos reservados</p>

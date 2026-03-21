@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.0.0}
+VERSION=${1:-1.1.0}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -50,7 +50,11 @@ pip install --quiet --target="${INSTALL_DIR}/lib" \
     cryptography \
     PyQt6 \
     PyQt6-Qt6 \
-    PyQt6-sip 2>/dev/null || true
+    PyQt6-sip \
+    openpyxl \
+    python-dateutil \
+    matplotlib \
+    reportlab 2>/dev/null || true
 
 # Script de arranque
 cat > "${BIN_DIR}/aluminio-manager" << 'EOF'
@@ -88,7 +92,7 @@ if ! python3 -c "import PyQt6" 2>/dev/null; then
 fi
 # Instalar dependências Python
 pip3 install --quiet --break-system-packages \
-    mysql-connector-python pyhanko pyhanko-certvalidator Pillow cryptography 2>/dev/null || true
+    mysql-connector-python pyhanko pyhanko-certvalidator Pillow cryptography openpyxl python-dateutil matplotlib reportlab 2>/dev/null || true
 
 # Criar directório de config
 mkdir -p /etc/aluminio-manager

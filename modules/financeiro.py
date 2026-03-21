@@ -1,342 +1,383 @@
 from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QLineEdit,
     QTableWidget,QTableWidgetItem,QHeaderView,QDialog,QFormLayout,QComboBox,QDoubleSpinBox,
-    QDateEdit,QTextEdit,QMessageBox,QFrame,QTabWidget)
+    QDateEdit,QTextEdit,QMessageBox,QFrame,QTabWidget,QDialogButtonBox)
 from PyQt6.QtCore import Qt,QDate
-CORES={"aco":"#1a2332","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","laranja":"#d4560a","danger":"#c0392b","success":"#1e7e44","warning":"#b8700a"}
+
 CATS_RECEITA=["Adiantamento","Pagamento final","Pagamento parcial","Serviço","Venda material","Outro"]
 CATS_DESPESA=["Material","Mão de obra","Equipamento","Combustível","Fornecedor","Subcontratado","Impostos","Outro"]
 METODOS=["Numerário","Transferência","Cheque","MB","MBWay","Outro"]
 
-def _btn(t,o): b=QPushButton(t); b.setObjectName(o); b.setCursor(Qt.CursorShape.PointingHandCursor); return b
+def _btn(t,o):
+    b=QPushButton(t); b.setObjectName(o); b.setCursor(Qt.CursorShape.PointingHandCursor); return b
 
 class FinanceiroDialog(QDialog):
     def __init__(self,dao,user,mov=None,obra_id=None,parent=None):
         super().__init__(parent); self.dao=dao; self.user=user; self.mov=mov
         self.setWindowTitle("Novo Movimento" if not mov else "Editar Movimento")
-        self.setMinimumWidth(500); self.resize(520,520)
-        from PyQt6.QtWidgets import QDialogButtonBox
+        self.setMinimumWidth(500); self.resize(520,540)
         lay=QVBoxLayout(self); lay.setContentsMargins(20,20,20,20); lay.setSpacing(10)
 
         # Tipo
         tw=QWidget(); tl=QHBoxLayout(tw); tl.setContentsMargins(0,0,0,0); tl.setSpacing(12)
         self.cmb_tipo=QComboBox(); self.cmb_tipo.addItems(["receita","despesa"])
-        self.cmb_tipo.currentTextChanged.connect(self._update_cats)
         tl.addWidget(QLabel("Tipo:")); tl.addWidget(self.cmb_tipo); tl.addStretch()
         lay.addWidget(tw)
 
-        fl=QFormLayout(); fl.setSpacing(9)
+        form=QFormLayout(); form.setSpacing(10)
+
+        # Categoria
         self.cmb_cat=QComboBox()
-        self.inp_desc=QLineEdit(); self.inp_desc.setPlaceholderText("Descrição do movimento")
-        self.spn_val=QDoubleSpinBox(); self.spn_val.setMaximum(9999999); self.spn_val.setSuffix(" €"); self.spn_val.setDecimals(2)
-        self.dt_mov=QDateEdit(QDate.currentDate()); self.dt_mov.setCalendarPopup(True)
-        self.cmb_metodo=QComboBox(); [self.cmb_metodo.addItem(m) for m in METODOS]
-        self.inp_fatura=QLineEdit(); self.inp_fatura.setPlaceholderText("Nº fatura (opcional)")
-        self.cmb_obra=QComboBox(); self.cmb_obra.addItem("— Sem obra —",None)
-        self.inp_notas=QTextEdit(); self.inp_notas.setMaximumHeight(60)
+        form.addRow("Categoria:",self.cmb_cat)
 
+        # Descrição
+        self.txt_desc=QLineEdit(); self.txt_desc.setPlaceholderText("Descrição do movimento")
+        form.addRow("Descrição:",self.txt_desc)
+
+        # Valor
+        self.spn_valor=QDoubleSpinBox(); self.spn_valor.setMaximum(999999); self.spn_valor.setDecimals(2); self.spn_valor.setSuffix(" €")
+        form.addRow("Valor:",self.spn_valor)
+
+        # Data
+        self.dte_data=QDateEdit(); self.dte_data.setCalendarPopup(True); self.dte_data.setDate(QDate.currentDate())
+        form.addRow("Data:",self.dte_data)
+
+        # Método pagamento
+        self.cmb_metodo=QComboBox(); self.cmb_metodo.addItems(METODOS)
+        form.addRow("Método:",self.cmb_metodo)
+
+        # Obra associada
+        self.cmb_obra=QComboBox(); self.cmb_obra.addItem("— Sem obra —", None)
         try:
-            obras=self.dao.listar_obras()
+            obras=dao.listar_obras()
             for o in obras:
-                self.cmb_obra.addItem(f"{o['numero']} — {o.get('descricao','')[:40]}",o["id"])
+                self.cmb_obra.addItem(f"Obra #{o['numero']} – {o.get('cliente_nome','')}", o['id'])
         except: pass
+        form.addRow("Obra:",self.cmb_obra)
 
-        for lbl,w in [("Categoria",self.cmb_cat),("Descrição *",self.inp_desc),
-                      ("Valor *",self.spn_val),("Data",self.dt_mov),
-                      ("Método pagamento",self.cmb_metodo),("Nº Fatura/Recibo",self.inp_fatura),
-                      ("Obra",self.cmb_obra),("Notas",self.inp_notas)]:
-            fl.addRow(lbl,w)
-        lay.addLayout(fl)
+        # Pago
+        self.cmb_pago=QComboBox(); self.cmb_pago.addItems(["Sim","Não"])
+        form.addRow("Pago:",self.cmb_pago)
 
-        bb=QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
-        bb.accepted.connect(self._guardar); bb.rejected.connect(self.reject); lay.addWidget(bb)
+        # Notas
+        self.txt_notas=QTextEdit(); self.txt_notas.setMaximumHeight(70)
+        form.addRow("Notas:",self.txt_notas)
 
-        self._update_cats()
-        if obra_id:
-            for i in range(self.cmb_obra.count()):
-                if self.cmb_obra.itemData(i)==obra_id:
-                    self.cmb_obra.setCurrentIndex(i); break
-        if mov: self._preencher()
+        lay.addLayout(form)
 
-    def _update_cats(self):
-        cats = CATS_RECEITA if self.cmb_tipo.currentText()=="receita" else CATS_DESPESA
-        atual = self.cmb_cat.currentText()
+        # Botões
+        bb=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        bb.accepted.connect(self._guardar); bb.rejected.connect(self.reject)
+        lay.addWidget(bb)
+
+        # Ligar sinal tipo
+        self.cmb_tipo.currentTextChanged.connect(self._atualizar_cats)
+        self._atualizar_cats(self.cmb_tipo.currentText())
+
+        # Preencher se editar
+        if mov:
+            self.cmb_tipo.setCurrentText(mov.get("tipo","receita"))
+            self.txt_desc.setText(mov.get("descricao",""))
+            self.spn_valor.setValue(float(mov.get("valor",0)))
+            if mov.get("data"):
+                try:
+                    from datetime import date
+                    d=str(mov["data"])[:10].split("-")
+                    self.dte_data.setDate(QDate(int(d[0]),int(d[1]),int(d[2])))
+                except: pass
+            if mov.get("metodo"): self.cmb_metodo.setCurrentText(mov["metodo"])
+            if mov.get("categoria"): self.cmb_cat.setCurrentText(mov["categoria"])
+            self.cmb_pago.setCurrentText("Sim" if mov.get("pago") else "Não")
+            if mov.get("obra_id"):
+                idx=self.cmb_obra.findData(mov["obra_id"])
+                if idx>=0: self.cmb_obra.setCurrentIndex(idx)
+            if mov.get("notas"): self.txt_notas.setPlainText(mov["notas"])
+
+        # Pré-seleccionar obra
+        if obra_id and not mov:
+            idx=self.cmb_obra.findData(obra_id)
+            if idx>=0: self.cmb_obra.setCurrentIndex(idx)
+
+    def _atualizar_cats(self,tipo):
         self.cmb_cat.clear()
-        [self.cmb_cat.addItem(c) for c in cats]
-        if atual in cats: self.cmb_cat.setCurrentText(atual)
-
-    def _preencher(self):
-        m=self.mov
-        self.cmb_tipo.setCurrentText(m.get("tipo","receita"))
-        self.inp_desc.setText(m.get("descricao",""))
-        self.spn_val.setValue(float(m.get("valor",0)))
-        if m.get("data"):
-            try: self.dt_mov.setDate(QDate.fromString(str(m["data"]),"yyyy-MM-dd"))
-            except: pass
-        self.cmb_cat.setCurrentText(m.get("categoria",""))
-        self.cmb_metodo.setCurrentText(m.get("metodo_pag","Numerário") or "Numerário")
-        self.inp_fatura.setText(m.get("documento","") or "")
-        self.inp_notas.setPlainText(m.get("notas","") or "")
-        if m.get("obra_id"):
-            for i in range(self.cmb_obra.count()):
-                if self.cmb_obra.itemData(i)==m["obra_id"]:
-                    self.cmb_obra.setCurrentIndex(i); break
+        self.cmb_cat.addItems(CATS_RECEITA if tipo=="receita" else CATS_DESPESA)
 
     def _guardar(self):
-        if not self.inp_desc.text().strip() or self.spn_val.value()<=0:
-            QMessageBox.warning(self,"Erro","Descrição e valor são obrigatórios."); return
-        d={"tipo":self.cmb_tipo.currentText(),"descricao":self.inp_desc.text().strip(),
-           "valor":self.spn_val.value(),"data":self.dt_mov.date().toString("yyyy-MM-dd"),
-           "categoria":self.cmb_cat.currentText(),"metodo_pag":self.cmb_metodo.currentText(),
-           "documento":self.inp_fatura.text(),"obra_id":self.cmb_obra.currentData(),
-           "notas":self.inp_notas.toPlainText(),"pago":1}
+        if not self.txt_desc.text().strip():
+            QMessageBox.warning(self,"Atenção","Preenche a descrição."); return
+        if self.spn_valor.value()<=0:
+            QMessageBox.warning(self,"Atenção","O valor deve ser maior que zero."); return
+        d={
+            "tipo":self.cmb_tipo.currentText(),
+            "categoria":self.cmb_cat.currentText(),
+            "descricao":self.txt_desc.text().strip(),
+            "valor":self.spn_valor.value(),
+            "data":self.dte_data.date().toString("yyyy-MM-dd"),
+            "metodo":self.cmb_metodo.currentText(),
+            "obra_id":self.cmb_obra.currentData(),
+            "pago":1 if self.cmb_pago.currentText()=="Sim" else 0,
+            "notas":self.txt_notas.toPlainText().strip(),
+        }
         if self.mov: d["id"]=self.mov["id"]
-        try: self.dao.salvar_financeiro(d); self.accept()
-        except Exception as e: QMessageBox.critical(self,"Erro",str(e))
+        try:
+            self.dao.salvar_financeiro(d); self.accept()
+        except Exception as e:
+            QMessageBox.critical(self,"Erro",str(e))
 
 
 class ObraFinanceiroDialog(QDialog):
-    """Mostra resumo financeiro de uma obra específica"""
+    """Diálogo de detalhe financeiro de uma obra"""
     def __init__(self,dao,obra,parent=None):
         super().__init__(parent); self.dao=dao; self.obra=obra
-        self.setWindowTitle(f"Financeiro — {obra['numero']}"); self.setMinimumSize(700,500)
-        lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(12)
+        self.setWindowTitle(f"Financeiro — Obra #{obra['numero']}")
+        self.setMinimumWidth(600); self.resize(650,500)
+        lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(10)
 
-        # Resumo da obra
-        resumo=QFrame(); resumo.setStyleSheet(f"background:{CORES['aco']};border-radius:8px;")
-        rl=QHBoxLayout(resumo); rl.setContentsMargins(16,12,16,12)
-        orc=float(obra.get("valor_orcamento",0) or 0)
-        fat=float(obra.get("valor_faturado",0) or 0)
-        # calcular recebido da BD
+        # Resumo
+        orcamento=float(obra.get("valor_orcamento") or obra.get("valor") or 0)
         try:
-            res=dao.fetchone("""SELECT
-                SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END) AS recebido,
-                SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END) AS gasto
-                FROM financeiro WHERE obra_id=%s""",(obra["id"],))
-            recebido=float(res["recebido"] or 0)
-            gasto=float(res["gasto"] or 0)
-        except: recebido=0; gasto=0
-        por_receber=orc-recebido
+            movs=self.dao.listar_financeiro(obra_id=obra["id"])
+        except:
+            movs=[]
+        total_rec=sum(float(m["valor"]) for m in movs if m["tipo"]=="receita")
+        total_desp=sum(float(m["valor"]) for m in movs if m["tipo"]=="despesa")
+        saldo=orcamento-total_rec
 
-        def _stat(titulo,valor,cor):
-            w=QWidget(); l=QVBoxLayout(w); l.setContentsMargins(0,0,0,0); l.setSpacing(2)
-            lv=QLabel(f"{valor:.2f} €"); lv.setStyleSheet(f"font-size:20px;font-weight:800;color:{cor};")
-            lt=QLabel(titulo); lt.setStyleSheet("font-size:11px;color:rgba(255,255,255,.6);")
-            l.addWidget(lv); l.addWidget(lt); return w
-
-        rl.addWidget(_stat("Orçamento",orc,"white"))
-        rl.addWidget(_stat("Recebido",recebido,"#a8e6cf"))
-        rl.addWidget(_stat("Por receber",por_receber,"#ffd3a5" if por_receber>0 else "#a8e6cf"))
-        rl.addWidget(_stat("Gastos",gasto,"#ffaaa5"))
-        rl.addWidget(_stat("Margem",recebido-gasto,"#a8e6cf" if recebido-gasto>=0 else "#ffaaa5"))
-        lay.addWidget(resumo)
-
-        # Botão registar recebimento
-        bw=QWidget(); bl=QHBoxLayout(bw); bl.setContentsMargins(0,0,0,0)
-        b_rec=QPushButton("💰  Registar Recebimento"); b_rec.setStyleSheet(f"background:{CORES['success']};color:white;border:none;border-radius:6px;padding:8px 16px;font-weight:600;")
-        b_rec.clicked.connect(lambda: self._novo_movimento("receita"))
-        b_des=QPushButton("💸  Registar Despesa"); b_des.setStyleSheet(f"background:{CORES['danger']};color:white;border:none;border-radius:6px;padding:8px 16px;font-weight:600;")
-        b_des.clicked.connect(lambda: self._novo_movimento("despesa"))
-        bl.addWidget(b_rec); bl.addWidget(b_des); bl.addStretch()
-        lay.addWidget(bw)
+        frame=QFrame(); frame.setStyleSheet("QFrame{background:#1a2332;border-radius:8px;padding:8px;}")
+        fl=QHBoxLayout(frame)
+        for label,val,cor in [
+            ("Orçamento",f"{orcamento:,.2f} €","#e8edf2"),
+            ("Recebido",f"{total_rec:,.2f} €","#1e7e44"),
+            ("Despesas",f"{total_desp:,.2f} €","#c0392b"),
+            ("Em falta",f"{saldo:,.2f} €","#d4560a" if saldo>0 else "#1e7e44"),
+        ]:
+            col=QWidget(); cl=QVBoxLayout(col); cl.setSpacing(2)
+            lv=QLabel(f"{val}"); lv.setStyleSheet(f"color:{cor};font-size:16px;font-weight:bold;")
+            ll=QLabel(label); ll.setStyleSheet("color:#8899aa;font-size:11px;")
+            cl.addWidget(lv); cl.addWidget(ll); fl.addWidget(col)
+        lay.addWidget(frame)
 
         # Tabela movimentos
-        self.table=QTableWidget(); self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["Data","Tipo","Categoria","Descrição","Valor"])
-        self.table.horizontalHeader().setSectionResizeMode(3,QHeaderView.ResizeMode.Stretch)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.verticalHeader().setVisible(False)
-        lay.addWidget(self.table)
-        self._load()
+        self.tbl=QTableWidget(0,5)
+        self.tbl.setHorizontalHeaderLabels(["Tipo","Categoria","Descrição","Valor","Data"])
+        self.tbl.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
+        self.tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tbl.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        lay.addWidget(self.tbl)
 
-    def _load(self):
-        try: movs=self.dao.listar_financeiro(obra_id=self.obra["id"])
-        except: movs=[]
-        self.table.setRowCount(len(movs))
-        for r,m in enumerate(movs):
-            vals=[str(m.get("data","—")),"",m.get("categoria","—"),m.get("descricao",""),f"{float(m.get('valor',0)):.2f} €"]
-            for c,v in enumerate(vals):
-                self.table.setItem(r,c,QTableWidgetItem(v))
-            is_rec=m["tipo"]=="receita"
-            bg,fg=("#d4edda","#1e7e44") if is_rec else ("#fde8e0","#c0392b")
-            tl=QLabel("↑ Receita" if is_rec else "↓ Despesa"); tl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            tl.setStyleSheet(f"background:{bg};color:{fg};border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;margin:4px;")
-            self.table.setCellWidget(r,1,tl)
-        self.table.resizeRowsToContents()
+        # Botão novo
+        btn_novo=_btn("+ Novo movimento","btn_primary")
+        btn_novo.clicked.connect(self._novo_mov)
+        lay.addWidget(btn_novo)
 
-    def _novo_movimento(self,tipo):
+        self._preencher(movs)
+
+    def _preencher(self,movs):
+        self.tbl.setRowCount(0)
+        for m in movs:
+            r=self.tbl.rowCount(); self.tbl.insertRow(r)
+            tipo=m.get("tipo","")
+            cor="#1e7e44" if tipo=="receita" else "#c0392b"
+            for c,v in enumerate([tipo,m.get("categoria",""),m.get("descricao",""),
+                                   f"{float(m.get('valor',0)):,.2f} €",str(m.get("data",""))[:10]]):
+                from modules.temas import cor_texto
+                item=QTableWidgetItem(v); item.setForeground(QColor(cor if c==0 else cor_texto()))
+                self.tbl.setItem(r,c,item)
+
+    def _exportar(self):
+        try:
+            colunas = ["Tipo","Categoria","Descrição","Valor (€)","Data","Pago","Obra"]
+            linhas = [[
+                m.get("tipo",""), m.get("categoria",""), m.get("descricao",""),
+                float(m.get("valor",0)), str(m.get("data",""))[:10],
+                "Sim" if m.get("pago") else "Não",
+                m.get("obra_numero","") or ""
+            ] for m in self._movs]
+            from modules.exportar import dialogo_exportar
+            dialogo_exportar(self, "Financeiro", colunas, linhas)
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Erro", str(e))
+
+    def _novo_mov(self):
         d=FinanceiroDialog(self.dao,None,obra_id=self.obra["id"],parent=self)
-        d.cmb_tipo.setCurrentText(tipo)
-        d._update_cats()
-        if tipo=="receita":
-            # Calcular valor em falta
-            try:
-                orc=float(self.obra.get("valor_orcamento",0) or 0)
-                res=self.dao.fetchone(
-                    "SELECT COALESCE(SUM(valor),0) AS rec FROM financeiro WHERE obra_id=%s AND tipo='receita'",
-                    (self.obra["id"],))
-                ja_recebido=float(res["rec"] or 0)
-                por_receber=orc-ja_recebido
-            except: por_receber=0; ja_recebido=0
-
-            if por_receber>0 and ja_recebido>0:
-                # Já houve adiantamento — sugere pagamento final
-                d.cmb_cat.setCurrentText("Pagamento final")
-                d.spn_val.setValue(por_receber)
-                d.inp_desc.setText(f"Pagamento final obra {self.obra['numero']}")
-            elif ja_recebido==0:
-                d.cmb_cat.setCurrentText("Adiantamento")
-                d.inp_desc.setText(f"Adiantamento obra {self.obra['numero']}")
-            else:
-                d.cmb_cat.setCurrentText("Pagamento parcial")
-
-            # Quando categoria muda para "Pagamento final", preencher valor automaticamente
-            def _on_cat_change(cat):
-                if cat=="Pagamento final" and por_receber>0:
-                    d.spn_val.setValue(por_receber)
-                    d.inp_desc.setText(f"Pagamento final obra {self.obra['numero']}")
-                elif cat=="Adiantamento":
-                    d.inp_desc.setText(f"Adiantamento obra {self.obra['numero']}")
-            d.cmb_cat.currentTextChanged.connect(_on_cat_change)
-
-        if d.exec()==QDialog.DialogCode.Accepted:
-            self._load(); self.__init__(self.dao,self.dao.get_obra(self.obra["id"]),self.parent())
+        if d.exec():
+            try: movs=self.dao.listar_financeiro(obra_id=self.obra["id"]); self._preencher(movs)
+            except: pass
 
 
 class FinanceiroWidget(QWidget):
-    def __init__(self,dao,user): super().__init__(); self.dao=dao; self.user=user; self._build()
+    def __init__(self,dao,user,parent=None):
+        super().__init__(parent); self.dao=dao; self.user=user
+        lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(10)
 
-    def _build(self):
-        lay=QVBoxLayout(self); lay.setContentsMargins(0,0,0,0)
+        # Título e botão
+        top=QHBoxLayout()
+        tit=QLabel("💰 Financeiro"); tit.setStyleSheet("font-size:20px;font-weight:bold;color:#1a2332;")
+        top.addWidget(tit); top.addStretch()
+        btn_novo=_btn("+ Novo Movimento","btn_primary")
+        btn_novo.clicked.connect(self._novo_mov)
+        top.addWidget(btn_novo)
+        lay.addLayout(top)
 
-        # Hero saldo
-        self.hero=QFrame(); self.hero.setStyleSheet(f"background:{CORES['aco']};")
-        hl=QHBoxLayout(self.hero); hl.setContentsMargins(22,16,22,16); hl.setSpacing(40)
-        self.lbl_saldo=QLabel("0.00 €"); self.lbl_saldo.setStyleSheet("font-size:32px;font-weight:800;color:white;")
-        self.lbl_rec=QLabel("Receitas: 0.00 €"); self.lbl_rec.setStyleSheet("font-size:12px;color:rgba(255,255,255,.7);")
-        self.lbl_des=QLabel("Despesas: 0.00 €"); self.lbl_des.setStyleSheet("font-size:12px;color:rgba(255,255,255,.7);")
-        iv=QVBoxLayout(); iv.setSpacing(2); iv.addWidget(self.lbl_rec); iv.addWidget(self.lbl_des)
-        hl.addWidget(QLabel("💶  Saldo:")); hl.addWidget(self.lbl_saldo); hl.addLayout(iv); hl.addStretch()
-        lay.addWidget(self.hero)
+        # Resumo cards
+        self.frame_resumo=QFrame()
+        self.frame_resumo.setStyleSheet("QFrame{background:#1a2332;border-radius:8px;padding:4px;}")
+        self.frame_resumo.setFixedHeight(70)
+        self.lay_resumo=QHBoxLayout(self.frame_resumo)
+        self.lay_resumo.setContentsMargins(8,4,8,4)
+        lay.addWidget(self.frame_resumo)
 
-        # Tabs: Todos os movimentos | Por obra
-        self.tabs=QTabWidget(); lay.addWidget(self.tabs)
+        # Filtros
+        fil=QHBoxLayout()
+        self.txt_filtro=QLineEdit(); self.txt_filtro.setPlaceholderText("🔍 Pesquisar..."); self.txt_filtro.textChanged.connect(self.refresh)
+        self.cmb_filtro_tipo=QComboBox(); self.cmb_filtro_tipo.addItems(["Todos","receita","despesa"]); self.cmb_filtro_tipo.currentTextChanged.connect(self.refresh)
+        fil.addWidget(self.txt_filtro); fil.addWidget(self.cmb_filtro_tipo)
+        lay.addLayout(fil)
 
-        # Tab 1 — Todos
-        t1=QWidget(); t1l=QVBoxLayout(t1); t1l.setContentsMargins(0,8,0,0)
-        fb=QWidget(); fb.setStyleSheet(f"background:{CORES['branco']};border-bottom:1px solid {CORES['alum_mid']};")
-        fl=QHBoxLayout(fb); fl.setContentsMargins(12,8,12,8); fl.setSpacing(10)
-        self.inp_f=QLineEdit(); self.inp_f.setPlaceholderText("🔍  Pesquisar..."); self.inp_f.setMaximumWidth(220)
-        self.inp_f.textChanged.connect(self.refresh)
-        self.cmb_filtro=QComboBox()
-        self.cmb_filtro.addItem("Todos",None); self.cmb_filtro.addItem("↑ Receitas","receita"); self.cmb_filtro.addItem("↓ Despesas","despesa")
-        self.cmb_filtro.currentIndexChanged.connect(self.refresh)
-        fl.addWidget(self.inp_f); fl.addWidget(self.cmb_filtro); fl.addStretch()
-        t1l.addWidget(fb)
-        self.table=QTableWidget(); self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels(["Data","Tipo","Categoria","Descrição","Valor","Obra","Ações"])
-        self.table.horizontalHeader().setSectionResizeMode(3,QHeaderView.ResizeMode.Stretch)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.verticalHeader().setVisible(False)
-        t1l.addWidget(self.table)
-        self.tabs.addTab(t1,"📋  Todos os Movimentos")
+        # Tabela
+        self.tbl=QTableWidget(0,7)
+        self.tbl.setHorizontalHeaderLabels(["Tipo","Categoria","Descrição","Valor","Data","Pago","Obra"])
+        hh=self.tbl.horizontalHeader()
+        hh.setSectionResizeMode(0,QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(1,QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
+        hh.setSectionResizeMode(3,QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(4,QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(5,QHeaderView.ResizeMode.Fixed)
+        hh.setSectionResizeMode(6,QHeaderView.ResizeMode.ResizeToContents)
+        self.tbl.setColumnWidth(5,55)
+        self.tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tbl.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tbl.setAlternatingRowColors(True)
+        self.tbl.doubleClicked.connect(self._ver_detalhe)
+        lay.addWidget(self.tbl)
 
-        # Tab 2 — Por obra
-        t2=QWidget(); t2l=QVBoxLayout(t2); t2l.setContentsMargins(0,8,0,0)
-        self.table_obras=QTableWidget(); self.table_obras.setColumnCount(6)
-        self.table_obras.setHorizontalHeaderLabels(["Obra","Cliente","Orçamento","Recebido","Por receber","Ações"])
-        self.table_obras.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
-        self.table_obras.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table_obras.verticalHeader().setVisible(False)
-        t2l.addWidget(self.table_obras)
-        self.tabs.addTab(t2,"🏗️  Por Obra")
+        # Acções
+        ac=QHBoxLayout()
+        btn_exp=_btn("📤 Exportar","btn_outline"); btn_exp.clicked.connect(self._exportar)
+        btn_ed=_btn("✏️ Editar","btn_secondary"); btn_ed.clicked.connect(self._editar)
+        btn_del=_btn("🗑️ Eliminar","btn_danger"); btn_del.clicked.connect(self._eliminar)
+        ac.addStretch(); ac.addWidget(btn_exp); ac.addWidget(btn_ed); ac.addWidget(btn_del)
+        lay.addLayout(ac)
 
-        self.tabs.currentChanged.connect(self.refresh)
+        self.refresh()
 
     def refresh(self):
-        # Resumo geral
+        tipo=self.cmb_filtro_tipo.currentText()
+        tipo=None if tipo=="Todos" else tipo
+        filtro=self.txt_filtro.text().strip()
         try:
-            res=self.dao.resumo_financeiro()
-            saldo=res["saldo"]
-            self.lbl_saldo.setText(f"{saldo:.2f} €")
-            cor="#a8e6cf" if saldo>=0 else "#ffaaa5"
-            self.lbl_saldo.setStyleSheet(f"font-size:32px;font-weight:800;color:{cor};")
-            self.lbl_rec.setText(f"Receitas: {res['receitas']:.2f} €")
-            self.lbl_des.setText(f"Despesas: {res['despesas']:.2f} €")
-        except Exception as e: print("[FIN resumo]",e)
+            movs=self.dao.listar_financeiro(filtro=filtro,tipo=tipo)
+        except Exception as e:
+            movs=[]
 
-        if self.tabs.currentIndex()==0:
-            self._refresh_lista()
-        else:
-            self._refresh_obras()
+        # Atualizar resumo
+        total_rec=sum(float(m["valor"]) for m in movs if m["tipo"]=="receita")
+        total_desp=sum(float(m["valor"]) for m in movs if m["tipo"]=="despesa")
+        saldo=total_rec-total_desp
+        # limpar cards anteriores
+        for i in reversed(range(self.lay_resumo.count())):
+            item=self.lay_resumo.itemAt(i)
+            if item and item.widget(): item.widget().deleteLater()
+        for label,val,cor in [
+            ("Total Receitas",f"{total_rec:,.2f} €","#1e7e44"),
+            ("Total Despesas",f"{total_desp:,.2f} €","#c0392b"),
+            ("Saldo",f"{saldo:,.2f} €","#1e7e44" if saldo>=0 else "#c0392b"),
+        ]:
+            col=QWidget(); cl=QVBoxLayout(col); cl.setSpacing(2)
+            lv=QLabel(val); lv.setStyleSheet(f"color:{cor};font-size:15px;font-weight:bold;")
+            ll=QLabel(label); ll.setStyleSheet("color:#8899aa;font-size:11px;")
+            cl.addWidget(lv); cl.addWidget(ll); self.lay_resumo.addWidget(col)
+        self.lay_resumo.addStretch()
 
-    def _refresh_lista(self):
-        try: movs=self.dao.listar_financeiro(self.inp_f.text(),self.cmb_filtro.currentData())
-        except Exception as e: print("[FIN lista]",e); movs=[]
-        self.table.setRowCount(len(movs))
-        for r,m in enumerate(movs):
-            vals=[str(m.get("data","—")),"",m.get("categoria","—"),m.get("descricao",""),
-                  f"{float(m.get('valor',0)):.2f} €",m.get("obra_numero") or "—"]
-            for c,v in enumerate(vals):
-                item=QTableWidgetItem(v); item.setData(Qt.ItemDataRole.UserRole,m["id"])
-                self.table.setItem(r,c,item)
-            is_rec=m["tipo"]=="receita"
-            bg,fg=("#d4edda","#1e7e44") if is_rec else ("#fde8e0","#c0392b")
-            tl=QLabel("↑ Receita" if is_rec else "↓ Despesa"); tl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            tl.setStyleSheet(f"background:{bg};color:{fg};border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;margin:4px;")
-            self.table.setCellWidget(r,1,tl)
-            acoes=QWidget(); al=QHBoxLayout(acoes); al.setContentsMargins(4,2,4,2); al.setSpacing(4)
-            be=_btn("✏️","btn_outline"); be.setFixedHeight(26); be.clicked.connect(lambda _,mid=m["id"]: self._editar(mid))
-            bd=_btn("🗑️","btn_danger"); bd.setFixedHeight(26); bd.clicked.connect(lambda _,mid=m["id"]: self._eliminar(mid))
-            al.addWidget(be); al.addWidget(bd); self.table.setCellWidget(r,6,acoes)
-        self.table.resizeRowsToContents()
+        # Preencher tabela
+        self.tbl.setRowCount(0)
+        self._movs=movs
+        for m in movs:
+            r=self.tbl.rowCount(); self.tbl.insertRow(r)
+            tipo_m=m.get("tipo","")
+            cor="#1e7e44" if tipo_m=="receita" else "#c0392b"
+            pago="✅" if m.get("pago") else "⏳"
+            obra=m.get("obra_numero","") or ""
+            pass  # obra já tem o número correto
+            from PyQt6.QtGui import QColor
+            bg_cor = QColor("#f0fff4") if tipo_m=="receita" else QColor("#fff5f5")
+            for c,v in enumerate([tipo_m,m.get("categoria",""),m.get("descricao",""),
+                                   f"{float(m.get('valor',0)):,.2f} €",
+                                   str(m.get("data",""))[:10],pago,obra]):
+                item=QTableWidgetItem(str(v))
+                if c==0: item.setForeground(QColor(cor))
+                if c==5: item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setBackground(bg_cor)
+                self.tbl.setItem(r,c,item)
 
-    def _refresh_obras(self):
-        try: obras=self.dao.listar_obras()
-        except: obras=[]
-        # só obras com valor orçamento
-        obras=[o for o in obras if float(o.get("valor_orcamento",0) or 0)>0]
-        self.table_obras.setRowCount(len(obras))
-        for r,o in enumerate(obras):
-            orc=float(o.get("valor_orcamento",0) or 0)
+    def _ver_detalhe(self, index):
+        row = index.row()
+        if row < 0 or row >= len(self._movs): return
+        m = self._movs[row]
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLabel, QDialogButtonBox
+        dlg = QDialog(self); dlg.setWindowTitle("Detalhe do Movimento"); dlg.setMinimumWidth(420)
+        lay = QVBoxLayout(dlg); lay.setContentsMargins(20,20,20,20); lay.setSpacing(8)
+        fl = QFormLayout(); fl.setSpacing(8)
+        tipo_m = m.get("tipo","—")
+        cor = "#1e7e44" if tipo_m=="receita" else "#c0392b"
+        lbl_tipo = QLabel(tipo_m.upper())
+        lbl_tipo.setStyleSheet(f"color:white;background:{cor};border-radius:6px;padding:2px 10px;font-weight:700;")
+        fl.addRow("Tipo:", lbl_tipo)
+        fl.addRow("Categoria:", QLabel(m.get("categoria","—")))
+        fl.addRow("Descrição:", QLabel(m.get("descricao","—")))
+        fl.addRow("Valor:", QLabel(f"{float(m.get('valor',0)):,.2f} €"))
+        fl.addRow("Data:", QLabel(str(m.get("data","—"))[:10]))
+        fl.addRow("Pago:", QLabel("✅ Sim" if m.get("pago") else "⏳ Não"))
+        if m.get("obra_numero"):
+            fl.addRow("Nº Obra:", QLabel(m.get("obra_numero","")))
+        if m.get("obra_id"):
             try:
-                res=self.dao.fetchone("""SELECT SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END) AS rec
-                    FROM financeiro WHERE obra_id=%s""",(o["id"],))
-                recebido=float(res["rec"] or 0)
-            except: recebido=0
-            por_receber=orc-recebido
-            vals=[f"{o['numero']} — {o.get('descricao','')[:30]}",o.get("cliente_nome","—"),
-                  f"{orc:.2f} €",f"{recebido:.2f} €",f"{por_receber:.2f} €"]
-            for c,v in enumerate(vals):
-                item=QTableWidgetItem(v); item.setData(Qt.ItemDataRole.UserRole,o["id"])
-                self.table_obras.setItem(r,c,item)
-            # cor por receber
-            cor="#fde8e0" if por_receber>0 else "#d4edda"
-            self.table_obras.item(r,4).setBackground(__import__("PyQt6.QtGui",fromlist=["QColor"]).QColor(cor))
-            # botão
-            bw=QWidget(); bl=QHBoxLayout(bw); bl.setContentsMargins(4,2,4,2)
-            b=_btn("💰 Recebimentos","btn_outline"); b.setFixedHeight(26)
-            b.clicked.connect(lambda _,oid=o["id"]: self._ver_obra(oid))
-            bl.addWidget(b); self.table_obras.setCellWidget(r,5,bw)
-        self.table_obras.resizeRowsToContents()
+                obra = self.dao.get_obra(m["obra_id"])
+                if obra:
+                    fl.addRow("Cliente:", QLabel(obra.get("cliente_nome","—")))
+                    fl.addRow("Descrição obra:", QLabel(obra.get("descricao","—")))
+                    fl.addRow("Estado:", QLabel(obra.get("estado","—")))
+                    val_orc = float(obra.get("valor_orcamento",0) or 0)
+                    fl.addRow("Valor orçamento:", QLabel(f"{val_orc:,.2f} €"))
+            except: pass
+        lay.addLayout(fl)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject); lay.addWidget(bb)
+        dlg.exec()
 
-    def novo(self):
+    def _exportar(self):
+        try:
+            colunas = ["Tipo","Categoria","Descrição","Valor (€)","Data","Pago","Obra"]
+            linhas = [[
+                m.get("tipo",""), m.get("categoria",""), m.get("descricao",""),
+                float(m.get("valor",0)), str(m.get("data",""))[:10],
+                "Sim" if m.get("pago") else "Não",
+                m.get("obra_numero","") or ""
+            ] for m in self._movs]
+            from modules.exportar import dialogo_exportar
+            dialogo_exportar(self, "Financeiro", colunas, linhas)
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Erro", str(e))
+
+    def _novo_mov(self):
         d=FinanceiroDialog(self.dao,self.user,parent=self)
-        if d.exec()==QDialog.DialogCode.Accepted: self.refresh()
+        if d.exec(): self.refresh()
 
-    def _editar(self,mid):
-        try: m=self.dao.fetchone("SELECT * FROM financeiro WHERE id=%s",(mid,))
-        except: return
-        d=FinanceiroDialog(self.dao,self.user,m,parent=self)
-        if d.exec()==QDialog.DialogCode.Accepted: self.refresh()
+    def _editar(self):
+        row=self.tbl.currentRow()
+        if row<0: QMessageBox.information(self,"Info","Selecciona um movimento."); return
+        mov=self._movs[row]
+        d=FinanceiroDialog(self.dao,self.user,mov=mov,parent=self)
+        if d.exec(): self.refresh()
 
-    def _eliminar(self,mid):
-        r=QMessageBox.question(self,"Eliminar","Tem a certeza?",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
+    def _eliminar(self):
+        row=self.tbl.currentRow()
+        if row<0: QMessageBox.information(self,"Info","Selecciona um movimento."); return
+        mov=self._movs[row]
+        r=QMessageBox.question(self,"Confirmar",f"Eliminar '{mov.get('descricao','')}'?",
+            QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
         if r==QMessageBox.StandardButton.Yes:
-            try: self.dao.execute("DELETE FROM financeiro WHERE id=%s",(mid,)); self.refresh()
+            try: self.dao.execute("DELETE FROM financeiro WHERE id=%s",(mov["id"],)); self.refresh()
             except Exception as e: QMessageBox.critical(self,"Erro",str(e))
-
-    def _ver_obra(self,oid):
-        try: obra=self.dao.get_obra(oid)
-        except: return
-        d=ObraFinanceiroDialog(self.dao,obra,parent=self)
-        d.exec(); self.refresh()
