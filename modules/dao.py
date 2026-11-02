@@ -115,10 +115,14 @@ def proximo_numero_obra():
     from datetime import date
     ano = date.today().year
     conn=_conn(); cur=conn.cursor()
-    cur.execute("SELECT MAX(CAST(SUBSTRING_INDEX(numero,'-',-1) AS UNSIGNED)) FROM obras WHERE numero LIKE %s", (f"OBR-{ano}-%",))
-    row = cur.fetchone()[0]
+    cur.execute("SELECT numero FROM obras WHERE numero LIKE %s", (f"OBR-{ano}-%",))
+    numeros = []
+    for (numero,) in cur.fetchall():
+        partes = str(numero or "").split("-")
+        if partes and partes[-1].isdigit():
+            numeros.append(int(partes[-1]))
     cur.close(); conn.close()
-    n = (row or 0) + 1
+    n = (max(numeros) if numeros else 0) + 1
     return f"OBR-{ano}-{n:04d}"
 
 def salvar_obra(d):
