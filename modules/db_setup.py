@@ -255,24 +255,34 @@ class DialogoBaseDados(QDialog):
         )
 
     def _guardar(self):
-        cfg = self._recolher()
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        from modules import registo
         try:
-            ok, mensagem = test_connection(cfg)
+            cfg = self._recolher()
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            try:
+                ok, mensagem = test_connection(cfg)
+                if not ok:
+                    try:
+                        criar_base_dados(cfg)
+                        ok, mensagem = test_connection(cfg)
+                    except Exception as exc:
+                        self._mostrar_estado(descrever_erro(exc), False)
+                        return
+            finally:
+                QApplication.restoreOverrideCursor()
+
             if not ok:
-                try:
-                    criar_base_dados(cfg)
-                    ok, mensagem = test_connection(cfg)
-                except Exception as exc:
-                    self._mostrar_estado(descrever_erro(exc), False)
-                    return
-        finally:
-            QApplication.restoreOverrideCursor()
+                self._mostrar_estado(mensagem, False)
+                return
 
-        if not ok:
-            self._mostrar_estado(mensagem, False)
-            return
-
-        save_config(cfg)
-        self._mostrar_estado("Configuração guardada. A abrir o programa…", True)
-        self.accept()
+            destino = save_config(cfg)
+            registo.registar(f"Configuração da base de dados guardada em {destino}")
+            self._mostrar_estado("Configuração guardada. A abrir o programa…", True)
+            self.accept()
+        except Exception as exc:
+            registo.registar_excecao()
+            try:
+                QApplication.restoreOverrideCursor()
+            except Exception:
+                pass
+            self._mostrar_estado(f"Erro inesperado ao guardar: {exc}", False)

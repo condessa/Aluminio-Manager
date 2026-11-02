@@ -4,6 +4,21 @@ import importlib
 import mysql.connector
 from PyQt6.QtWidgets import QApplication, QMessageBox, QDialog
 from db.database import get_connection as conectar, load_config, SCHEMA_SQL
+import traceback
+
+from modules import registo
+
+
+def _erro_global(tipo, valor, tb):
+    registo.registar("ERRO NÃO TRATADO:\n" + "".join(traceback.format_exception(tipo, valor, tb)))
+    try:
+        from PyQt6.QtWidgets import QApplication, QMessageBox
+        if QApplication.instance():
+            QMessageBox.critical(
+                None, "Erro inesperado",
+                f"Ocorreu um erro:\n\n{valor}\n\nDetalhes guardados em:\n{registo.ficheiro()}")
+    except Exception:
+        pass
 
 def inicializar_bd():
     """Inicializa a base de dados - cria tudo se não existir ou estiver incompleta"""
@@ -160,6 +175,8 @@ def _obter_utilizador(username):
 
 
 def main():
+    sys.excepthook = _erro_global
+    registo.registar(f"=== Arranque (Python {sys.version.split()[0]}) ===")
     # Configura backup automático silenciosamente
     try:
         from modules.backup_manager import configurar_backup_automatico
@@ -210,9 +227,12 @@ def main():
             if dialogo.exec() != QDialog.DialogCode.Accepted:
                 sys.exit(1)
 
+    registo.registar("Base de dados ligada")
+
 
 
     _migrar_estrutura()
+    registo.registar("Estrutura verificada")
 
     # Forçar reload do dao
     import modules.dao as dao
@@ -225,6 +245,7 @@ def main():
     # Sem contas criadas, é sempre primeira utilização — mesmo que a base de
     # dados já tenha dados da empresa de uma instalação anterior.
     precisa_config = not oficina_configurada() or not _tem_utilizadores()
+    registo.registar(f"Primeira configuração necessária: {precisa_config}")
     utilizador_inicial = None
 
     if precisa_config:
@@ -234,6 +255,7 @@ def main():
             sys.exit(0)
         # A conta foi criada agora: entrar sem pedir login outra vez.
         utilizador_inicial = getattr(cfg, "utilizador_criado", None)
+        registo.registar(f"Configuração inicial concluída (utilizador: {utilizador_inicial})")
         print("[CONFIG] Configuração guardada com sucesso!")
     
     from modules.login import LoginDialog
@@ -252,8 +274,10 @@ def main():
             utilizador = dlg.utilizador
 
         # Janela principal
+        registo.registar(f"A abrir janela principal (utilizador: {utilizador.get('username','?')})")
         win = MainWindow(utilizador)
         win.show()
+        registo.registar("Janela principal aberta")
 
         # Lembretes de aniversário
         _verificar_aniversarios(win)
@@ -267,4 +291,10 @@ def main():
     sys.exit(0)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception:
+        _erro_global(*sys.exc_info())
+        raise
