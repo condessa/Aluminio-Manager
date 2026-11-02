@@ -30,6 +30,41 @@ ESTADOS_TEXTO = {
     "em_espera": "Em Espera"
 }
 
+ESTADOS_ATIVOS = ["orcamento", "confirmada", "em_producao", "em_montagem"]
+
+# Transições permitidas. "concluida" e "cancelada" são estados finais.
+TRANSICOES = {
+    "orcamento":   ["confirmada", "em_espera", "cancelada"],
+    "confirmada":  ["em_producao", "em_espera", "cancelada"],
+    "em_producao": ["em_montagem", "em_espera", "cancelada"],
+    "em_montagem": ["concluida", "em_espera", "cancelada"],
+    "em_espera":   [],
+    "concluida":   [],
+    "cancelada":   [],
+}
+
+
+def transicoes_permitidas(estado_atual, estado_anterior=None):
+    """Estados para onde a obra pode passar, a partir do estado actual."""
+    if estado_atual == "em_espera":
+        opcoes = [estado_anterior] if estado_anterior in ESTADOS_ATIVOS else list(ESTADOS_ATIVOS)
+        return opcoes + ["cancelada"]
+    return list(TRANSICOES.get(estado_atual, []))
+
+
+def validar_transicao(estado_atual, novo_estado, estado_anterior=None):
+    """Devolve None se a transição é válida, ou a mensagem de erro."""
+    if novo_estado == estado_atual:
+        return None
+    if novo_estado in transicoes_permitidas(estado_atual, estado_anterior):
+        return None
+    if estado_atual in ("concluida", "cancelada"):
+        return (f"A obra está «{ESTADOS_TEXTO.get(estado_atual, estado_atual)}» e já não pode "
+                "mudar de estado.\n\nEstados finais não podem ser alterados.")
+    return (f"Não é possível passar de «{ESTADOS_TEXTO.get(estado_atual, estado_atual)}» "
+            f"para «{ESTADOS_TEXTO.get(novo_estado, novo_estado)}».")
+
+
 TIPOS = ["porta", "janela", "marquise", "porta_de_correr", "gradeamento", "portao", "cobertura", "outro"]
 TIPOS_TEXTO = {
     "porta": "Porta",
@@ -109,8 +144,7 @@ class ObraDialog(QDialog):
             self.cmb_tipo.addItem(TIPOS_TEXTO.get(t, t), t)
 
         self.cmb_estado = QComboBox()
-        for estado in ESTADOS:
-            self.cmb_estado.addItem(ESTADOS_TEXTO.get(estado, estado), estado)
+        self._preencher_estados()
         self.chk_notificar = QCheckBox("Enviar email ao cliente quando o estado mudar")
         self.chk_notificar.setToolTip("Se activo, o cliente recebe um email automático cada vez que o estado desta obra for alterado")
 
@@ -279,6 +313,20 @@ class ObraDialog(QDialog):
                 "Criar Cliente",
                 "Feche esta janela, crie primeiro o cliente\ne depois registe a obra."
             )
+
+    def _preencher_estados(self):
+        """Mostra o estado actual e apenas as transições válidas."""
+        self.cmb_estado.clear()
+        if not self.obra:
+            opcoes = ["orcamento", "confirmada"]
+        else:
+            actual = self.obra.get("estado", "orcamento")
+            opcoes = [actual] + transicoes_permitidas(actual, self.obra.get("estado_anterior"))
+        for estado in opcoes:
+            self.cmb_estado.addItem(ESTADOS_TEXTO.get(estado, estado), estado)
+        if self.obra:
+            self.cmb_estado.setEnabled(bool(transicoes_permitidas(
+                self.obra.get("estado", ""), self.obra.get("estado_anterior"))))
 
     def _preencher(self):
         o = self.obra
@@ -561,13 +609,19 @@ class ObrasWidget(QWidget):
                 menu.addSeparator()
 
                 sub = menu.addMenu("🔄  Mudar estado")
-                for est_key in ESTADOS:
-                    est_label = ESTADOS_TEXTO.get(est_key, est_key)
-                    prefixo = "✓  " if est_key == estado else "    "
-                    a = sub.addAction(prefixo + est_label)
-                    a.triggered.connect(
-                        lambda checked, ek=est_key, oid2=oid: self._mudar_estado_direto(ek, oid2)
-                    )
+                actual = sub.addAction("✓  " + ESTADOS_TEXTO.get(estado, estado))
+                actual.setEnabled(False)
+                permitidas = transicoes_permitidas(estado, o.get("estado_anterior"))
+                if permitidas:
+                    sub.addSeparator()
+                    for est_key in permitidas:
+                        a = sub.addAction("    " + ESTADOS_TEXTO.get(est_key, est_key))
+                        a.triggered.connect(
+                            lambda checked, ek=est_key, oid2=oid: self._mudar_estado_direto(ek, oid2)
+                        )
+                else:
+                    fim = sub.addAction("    (estado final — sem alterações)")
+                    fim.setEnabled(False)
 
                 menu.addSeparator()
                 menu.addAction("📎  Anexos", lambda: self._anexos(oid))
@@ -608,33 +662,38 @@ class ObrasWidget(QWidget):
         self.table.resizeRowsToContents()
 
     def _mudar_estado_direto(self, novo_estado, oid):
-        LABELS = {
-            "orcamento":"Orçamento","confirmada":"Confirmada","em_producao":"Em Produção",
-            "em_montagem":"Em Montagem","concluida":"Concluída","cancelada":"Cancelada","em_espera":"Em Espera"
-        }
-        ORDEM = ["orcamento","confirmada","em_producao","em_montagem","concluida"]
-        LIVRES = ["cancelada","em_espera"]  # podem ser aplicados em qualquer ponto
         try:
             obra_antes = self.dao.get_obra(oid)
-            estado_antes = obra_antes.get("estado","") if obra_antes else ""
-            # Validar progressão
-            if novo_estado not in LIVRES and estado_antes not in LIVRES:
-                idx_antes = ORDEM.index(estado_antes) if estado_antes in ORDEM else -1
-                idx_novo  = ORDEM.index(novo_estado)  if novo_estado  in ORDEM else -1
-                if idx_novo < idx_antes:
-                    msg = f"Não é possível retroceder o estado de {LABELS.get(estado_antes)} para {LABELS.get(novo_estado)}.\n\nA progressão de estados é sempre para a frente."
-                    QMessageBox.warning(self, "Estado inválido", msg)
-                    return
-            self.dao.execute("UPDATE obras SET estado=%s WHERE id=%s", (novo_estado, oid))
-            # Registar histórico
+            if not obra_antes:
+                return
+            estado_antes = obra_antes.get("estado", "")
+
+            erro = validar_transicao(estado_antes, novo_estado, obra_antes.get("estado_anterior"))
+            if erro:
+                QMessageBox.warning(self, "Estado inválido", erro)
+                return
+
+            if novo_estado == "em_espera":
+                self.dao.execute(
+                    "UPDATE obras SET estado=%s, estado_anterior=%s WHERE id=%s",
+                    (novo_estado, estado_antes, oid))
+            elif estado_antes == "em_espera":
+                self.dao.execute(
+                    "UPDATE obras SET estado=%s, estado_anterior=NULL WHERE id=%s",
+                    (novo_estado, oid))
+            else:
+                self.dao.execute("UPDATE obras SET estado=%s WHERE id=%s", (novo_estado, oid))
+
             try:
                 self.dao.registar_historico(oid, "Mudança de estado",
-                    f"{LABELS.get(estado_antes, estado_antes)} → {LABELS.get(novo_estado, novo_estado)}",
-                    utilizador_nome=self.user.get("nome","") if self.user else None)
-            except: pass
+                    f"{ESTADOS_TEXTO.get(estado_antes, estado_antes)} → "
+                    f"{ESTADOS_TEXTO.get(novo_estado, novo_estado)}",
+                    utilizador_nome=self.user.get("nome", "") if self.user else None)
+            except Exception:
+                pass
+
             self.refresh()
-            # Notificar cliente se opção activa
-            if obra_antes and obra_antes.get("notificar_cliente"):
+            if obra_antes.get("notificar_cliente"):
                 self._notificar_cliente_estado(oid, novo_estado)
         except Exception as e:
             QMessageBox.critical(self, "Erro", str(e))

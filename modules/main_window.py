@@ -372,6 +372,14 @@ que cria a base de dados e o utilizador com a palavra-passe do sistema.</p>
 <p>Sem contas pré-definidas: na primeira execução é criada a conta de administrador
 e o programa entra diretamente nela.</p>
 
+<h3 style='color:#1a2332;'>📧 Envio pela conta da oficina</h3>
+<p>Em <b>Ajuda → Como configurar o Email</b> é possível ligar a conta Google da oficina
+e os orçamentos passam a sair desse email (OAuth), sem palavras-passe.</p>
+
+<h3 style='color:#1a2332;'>🔒 Estados finais das obras</h3>
+<p>Uma obra <b>Concluída</b> ou <b>Cancelada</b> já não pode mudar de estado. O menu
+«Mudar estado» mostra apenas as transições válidas.</p>
+
 <h3 style='color:#1a2332;'>🐛 Correções</h3>
 <ul>
 <li>Mensagens claras para servidor em baixo, credenciais recusadas e base de dados inexistente.</li>

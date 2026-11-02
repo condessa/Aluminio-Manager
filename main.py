@@ -120,6 +120,19 @@ def _verificar_aniversarios(parent):
         print(f"[Aniversários] Erro: {e}")
 
 
+def _migrar_estrutura():
+    """Acrescenta colunas novas a bases de dados já existentes."""
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("ALTER TABLE obras ADD COLUMN IF NOT EXISTS estado_anterior VARCHAR(30) DEFAULT NULL")
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"[DB] Migração: {e}")
+
+
 def _tem_utilizadores():
     """True se já existe pelo menos uma conta; False numa instalação nova."""
     try:
@@ -198,6 +211,8 @@ def main():
                 sys.exit(1)
 
 
+
+    _migrar_estrutura()
 
     # Forçar reload do dao
     import modules.dao as dao

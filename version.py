@@ -1,3 +1,3 @@
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 APP_NAME = "AluminioManager"
 AUTHOR = "HCsoftware"
