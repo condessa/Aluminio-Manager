@@ -307,7 +307,8 @@ class MainWindow(QMainWindow):
         a_perfis = QAction("👥  Perfis de Utilizador", self); a_perfis.triggered.connect(self._ajuda_perfis)
         a_orc = QAction("📋  Como criar um Orçamento", self); a_orc.triggered.connect(self._ajuda_orcamento)
         a_sobre = QAction("ℹ️  Sobre", self); a_sobre.triggered.connect(self._sobre)
-        a_novidades = QAction("🆕  Novidades v1.1.0", self); a_novidades.triggered.connect(self._ajuda_novidades)
+        from version import VERSION as _versao
+        a_novidades = QAction(f"🆕  Novidades v{_versao}", self); a_novidades.triggered.connect(self._ajuda_novidades)
         m_ajuda.addAction(a_email); m_ajuda.addAction(a_perfis)
         m_ajuda.addAction(a_orc); m_ajuda.addAction(a_novidades)
         m_ajuda.addSeparator(); m_ajuda.addAction(a_sobre)
@@ -356,22 +357,32 @@ class MainWindow(QMainWindow):
 """)
 
     def _ajuda_novidades(self):
-        self._mostrar_ajuda("🆕  Novidades v1.1.0", """
-<h2 style='color:#d4560a;'>Novidades na versão 1.1.0</h2>
-<h3 style='color:#1a2332;'>📤 Exportação de dados</h3>
-<p>Exportação para Excel (.xlsx) e CSV em todas as listas: Obras, Clientes, Stock, Financeiro e Fornecedores.</p>
-<h3 style='color:#1a2332;'>📋 Histórico de movimentos de Stock</h3>
-<p>Cada artigo de stock tem agora um registo completo de todas as entradas, saídas e ajustes.</p>
-<h3 style='color:#1a2332;'>🏭 Fornecedores</h3>
-<p>Novo módulo de fornecedores com associação a artigos de stock e seleção de fornecedor nas entradas.</p>
-<h3 style='color:#1a2332;'>📅 Calendário</h3>
-<p>Novo módulo de calendário com visualização de obras, tarefas e eventos. Suporte a aniversários de funcionários com lembretes automáticos.</p>
-<h3 style='color:#1a2332;'>🎂 Lembretes de aniversário</h3>
-<p>Na abertura do programa são mostrados lembretes dos aniversários do dia e do dia seguinte.</p>
-<h3 style='color:#1a2332;'>🔍 Pesquisa melhorada</h3>
-<p>A pesquisa em Obras é agora insensível a maiúsculas/minúsculas e ignora automaticamente o filtro de estado.</p>
-<h3 style='color:#1a2332;'>⚙️ Configuração inicial</h3>
-<p>Novo assistente de configuração inicial com criação de conta de administrador personalizada.</p>
+        from version import VERSION
+        self._mostrar_ajuda(f"🆕  Novidades v{VERSION}", f"""
+<h2 style='color:#d4560a;'>Novidades na versão {VERSION}</h2>
+
+<h3 style='color:#1a2332;'>🆓 Gratuito e de código aberto</h3>
+<p>O AluminioManager passou a ser software livre (GPLv3): sem período de avaliação,
+sem chaves de ativação e sem pagamentos.</p>
+
+<h3 style='color:#1a2332;'>📦 Instalação sem Internet</h3>
+<p>O pacote inclui todas as bibliotecas necessárias. Pode ser instalado numa oficina
+sem ligação à rede.</p>
+
+<h3 style='color:#1a2332;'>⚙️ Base de dados automática</h3>
+<p>Se a ligação ao MySQL/MariaDB falhar, aparece o botão <b>«Configurar automaticamente»</b>,
+que cria a base de dados e o utilizador com a palavra-passe do sistema.</p>
+
+<h3 style='color:#1a2332;'>👤 Primeira utilização</h3>
+<p>Sem contas pré-definidas: na primeira execução é criada a conta de administrador
+e o programa entra diretamente nela.</p>
+
+<h3 style='color:#1a2332;'>🐛 Correções</h3>
+<ul>
+<li>Mensagens claras para servidor em baixo, credenciais recusadas e base de dados inexistente.</li>
+<li>Compatibilidade com Python 3.10 a 3.13.</li>
+<li>Configuração guardada em <b>~/.config/aluminio-manager</b>, gravável por qualquer utilizador.</li>
+</ul>
 """)
 
     def _sobre(self):
