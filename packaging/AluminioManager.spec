@@ -6,7 +6,7 @@ BASE = os.path.abspath(SPECPATH)
 ROOT = os.path.dirname(BASE)
 
 datas, binaries, hiddenimports = [], [], []
-for pacote in ("pyhanko", "pyhanko_certvalidator", "matplotlib", "mysql.connector"):
+for pacote in ("pyhanko", "pyhanko_certvalidator", "matplotlib"):
     try:
         d, b, h = collect_all(pacote)
         datas += d

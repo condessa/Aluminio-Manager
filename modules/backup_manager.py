@@ -3,6 +3,7 @@ backup_manager.py — Backup automático da BD antes de desligar
 Configura-se automaticamente no primeiro arranque (Linux e Windows)
 """
 import os
+import sqlite3
 import sys
 import platform
 import subprocess
@@ -13,33 +14,34 @@ BACKUP_DIR = Path.home() / "Backups" / "aluminio-auto"
 LOG_FILE   = BACKUP_DIR / "backup.log"
 SCRIPT_DIR = Path(__file__).parent.parent  # raiz do projeto
 
-DB_USER = "aluminio_user"
-DB_PASS = "aluminio_pass"
-DB_NAME = "aluminio_manager"
-
 def _log(msg):
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     with open(LOG_FILE, "a") as f:
         f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
 
 def fazer_backup():
-    """Executa o backup da BD. Chamado no shutdown ou manualmente."""
+    """Copia a base de dados SQLite (seguro com a base aberta)."""
     try:
+        from db.database import caminho_bd
+
+        origem_caminho = caminho_bd()
+        if not origem_caminho.exists():
+            _log("Sem base de dados para copiar")
+            return False
+
         BACKUP_DIR.mkdir(parents=True, exist_ok=True)
         data = datetime.now().strftime("%Y%m%d-%H%M%S")
-        destino = BACKUP_DIR / f"db-{data}.sql"
+        destino = BACKUP_DIR / f"db-{data}.db"
 
-        if platform.system() == "Windows":
-            cmd = f'mysqldump -u {DB_USER} -p{DB_PASS} {DB_NAME} > "{destino}"'
-            subprocess.run(cmd, shell=True, check=True)
-        else:
-            with open(destino, "w") as f:
-                subprocess.run(
-                    ["mysqldump", f"-u{DB_USER}", f"-p{DB_PASS}", DB_NAME],
-                    stdout=f, check=True, stderr=subprocess.DEVNULL)
+        origem = sqlite3.connect(str(origem_caminho))
+        alvo = sqlite3.connect(str(destino))
+        with alvo:
+            origem.backup(alvo)
+        alvo.close()
+        origem.close()
 
         # Manter só os últimos 30 backups
-        backups = sorted(BACKUP_DIR.glob("db-*.sql"))
+        backups = sorted(BACKUP_DIR.glob("db-*.db"))
         for antigo in backups[:-30]:
             antigo.unlink()
 

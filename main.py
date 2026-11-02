@@ -1,10 +1,9 @@
 """AluminioManager — Programa principal"""
 import sys
 import importlib
-import mysql.connector
 from PyQt6.QtWidgets import QApplication, QMessageBox, QDialog
 from PyQt6.QtGui import QIcon
-from db.database import get_connection as conectar, load_config, SCHEMA_SQL
+from db.database import get_connection as conectar, caminho_bd, garantir_schema
 import traceback
 
 from modules import registo
@@ -38,78 +37,11 @@ def _erro_global(tipo, valor, tb):
         pass
 
 def inicializar_bd():
-    """Inicializa a base de dados - cria tudo se não existir ou estiver incompleta"""
-    from db.database import criar_base_dados
-    
-    print("[DB] A verificar base de dados...")
-    cfg = load_config()
-    
-    try:
-        # Tenta ligar à base de dados específica
-        conn = conectar()
-        cursor = conn.cursor()
-        
-        # Verificar se as tabelas principais existem
-        cursor.execute("SHOW TABLES LIKE 'utilizadores'")
-        tem_utilizadores = cursor.fetchone() is not None
-        
-        cursor.execute("SHOW TABLES LIKE 'oficina'")
-        tem_oficina = cursor.fetchone() is not None
-        
-        cursor.close()
-        conn.close()
-        
-        # Se faltar alguma tabela principal, recria tudo
-        if not tem_utilizadores or not tem_oficina:
-            print("[DB] Base de dados incompleta. A recriar estrutura...")
-            
-            # Recriar a base de dados do zero
-            conn = mysql.connector.connect(
-                host=cfg["host"],
-                port=cfg["port"],
-                user=cfg["user"],
-                password=cfg["password"],
-                charset="utf8mb4"
-            )
-            cursor = conn.cursor()
-            
-            # Apagar e recriar a base de dados
-            cursor.execute(f"DROP DATABASE IF EXISTS {cfg['database']}")
-            cursor.execute(f"CREATE DATABASE {cfg['database']} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
-            cursor.execute(f"USE {cfg['database']}")
-            
-            # Executar todo o schema
-            print("[DB] A criar tabelas...")
-            for stmt in SCHEMA_SQL.strip().split(";"):
-                s = stmt.strip()
-                if s and not s.upper().startswith('USE'):
-                    try:
-                        cursor.execute(s)
-                        conn.commit()
-                    except Exception as e:
-                        print(f"[DB] Aviso: {e}")
-            
-            cursor.close()
-            conn.close()
-            print("[DB] Base de dados criada com sucesso!")
-        else:
-            print("[DB] Base de dados OK.")
-            
-    except mysql.connector.Error as e:
-        # Se a base de dados não existir, cria tudo
-        if "Unknown database" in str(e) or "database doesn't exist" in str(e):
-            print("[DB] Base de dados não existe. A criar...")
-            criar_base_dados()
-        else:
-            # Outro erro de ligação
-            print(f"[DB] Erro de ligação: {e}")
-            print("[DB] Verifique se o MySQL/MariaDB está a correr:")
-            print("    sudo systemctl status mysql")
-            print("    sudo systemctl start mysql")
-            raise e
-    except Exception as e:
-        print(f"[DB] Erro inesperado: {e}")
-        raise e
+    """Cria/verifica o ficheiro SQLite e o schema."""
+    print("[DB] A verificar base de dados…")
+    caminho = garantir_schema()
+    print(f"[DB] Base de dados pronta: {caminho}")
+
 
 def _verificar_aniversarios(parent):
     from datetime import date, timedelta
@@ -150,19 +82,6 @@ def _verificar_aniversarios(parent):
             msg.exec()
     except Exception as e:
         print(f"[Aniversários] Erro: {e}")
-
-
-def _migrar_estrutura():
-    """Acrescenta colunas novas a bases de dados já existentes."""
-    try:
-        conn = conectar()
-        cur = conn.cursor()
-        cur.execute("ALTER TABLE obras ADD COLUMN IF NOT EXISTS estado_anterior VARCHAR(30) DEFAULT NULL")
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"[DB] Migração: {e}")
 
 
 def _tem_utilizadores():
@@ -241,25 +160,20 @@ def main():
         }
     """)
 
-    # Inicializar BD — se falhar, pedir os dados de ligação ao utilizador
-    from modules.db_setup import DialogoBaseDados
-
-    while True:
-        try:
-            inicializar_bd()
-            break
-        except Exception as e:
-            print(f"[DB] Erro de ligação: {e}")
-            dialogo = DialogoBaseDados(e)
-            if dialogo.exec() != QDialog.DialogCode.Accepted:
-                sys.exit(1)
+    # Inicializar BD
+    try:
+        inicializar_bd()
+    except Exception as e:
+        registo.registar_excecao()
+        QMessageBox.critical(
+            None, "Erro na base de dados",
+            f"Não foi possível abrir a base de dados:\n\n{e}\n\nFicheiro:\n{caminho_bd()}")
+        sys.exit(1)
 
     registo.registar("Base de dados ligada")
 
 
 
-    _migrar_estrutura()
-    registo.registar("Estrutura verificada")
 
     # Forçar reload do dao
     import modules.dao as dao

@@ -34,8 +34,9 @@ def oficina_configurada():
 def guardar_oficina(dados):
     conn=get_connection(); cur=conn.cursor()
     for chave,valor in dados.items():
-        cur.execute("INSERT INTO oficina (chave,valor) VALUES(%s,%s) ON DUPLICATE KEY UPDATE valor=%s",
-            (chave,valor,valor))
+        cur.execute("INSERT INTO oficina (chave,valor) VALUES(%s,%s) "
+                    "ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor",
+            (chave,valor))
     conn.commit(); cur.close(); conn.close()
 
 def gerar_certificado(nome_emp, email_emp):

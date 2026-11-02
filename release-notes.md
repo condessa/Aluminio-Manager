@@ -5,7 +5,7 @@ de ativação e sem limite de funcionalidades.
 
 - **Linux:** instalação **sem Internet** — as bibliotecas vão dentro do pacote.
 - **Windows:** executável portátil, sem instalação.
-- Base de dados criada automaticamente; assistente «Configurar automaticamente» se falhar.
+- **Base de dados SQLite**: um ficheiro local, sem servidor, sem MySQL e sem configuração.
 - Primeira utilização sem contas: o administrador é criado no primeiro arranque.
 - Orçamentos por email pela conta da aplicação ou pela conta Google da oficina (OAuth).
 

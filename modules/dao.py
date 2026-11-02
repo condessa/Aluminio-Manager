@@ -261,7 +261,7 @@ def stats_dashboard():
     cur.execute("SELECT COUNT(*) AS n FROM obras WHERE prioridade='urgente' AND estado NOT IN ('concluida','cancelada')"); urgentes=cur.fetchone()["n"]
     cur.execute("SELECT COUNT(*) AS n FROM tarefas WHERE estado='pendente'"); tarefas=cur.fetchone()["n"]
     cur.execute("SELECT COUNT(*) AS n FROM stock WHERE quantidade<=stock_minimo"); stock_baixo=cur.fetchone()["n"]
-    cur.execute("SELECT COUNT(*) AS n FROM obras WHERE MONTH(criado_em)=MONTH(CURDATE()) AND YEAR(criado_em)=YEAR(CURDATE())"); obras_mes=cur.fetchone()["n"]
+    cur.execute("SELECT COUNT(*) AS n FROM obras WHERE strftime('%Y-%m', criado_em)=strftime('%Y-%m', 'now', 'localtime')"); obras_mes=cur.fetchone()["n"]
     cur.execute("SELECT SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END) AS rec, SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END) AS des FROM financeiro"); fin=cur.fetchone()
     cur.close(); conn.close()
     rec=float(fin["rec"] or 0); des=float(fin["des"] or 0)
@@ -273,7 +273,7 @@ def criar_fases_obra(obra_id):
     conn=_conn(); cur=conn.cursor()
     fases=["corte","furacao","montagem","ferragens","vidro","acabamento","embalagem"]
     for f in fases:
-        cur.execute("INSERT IGNORE INTO producao_fases (obra_item_id, fase) SELECT id, %s FROM obra_itens WHERE obra_id=%s",(f, obra_id))
+        cur.execute("INSERT OR IGNORE INTO producao_fases (obra_item_id, fase) SELECT id, %s FROM obra_itens WHERE obra_id=%s",(f, obra_id))
     conn.commit(); cur.close(); conn.close()
 
 def listar_fases_obra(obra_id):
@@ -477,9 +477,12 @@ def listar_fornecedores_stock(stock_id):
 def associar_fornecedor_stock(stock_id, fornecedor_id, ref="", preco=0, prazo=0, principal=0):
     conn=_conn(); cur=conn.cursor()
     cur.execute("""INSERT INTO stock_fornecedores (stock_id,fornecedor_id,referencia_fornecedor,preco_compra,prazo_entrega_dias,fornecedor_principal)
-        VALUES(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE
-        referencia_fornecedor=%s,preco_compra=%s,prazo_entrega_dias=%s,fornecedor_principal=%s""",
-        (stock_id,fornecedor_id,ref,preco,prazo,principal,ref,preco,prazo,principal))
+        VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(stock_id, fornecedor_id) DO UPDATE SET
+        referencia_fornecedor=excluded.referencia_fornecedor,
+        preco_compra=excluded.preco_compra,
+        prazo_entrega_dias=excluded.prazo_entrega_dias,
+        fornecedor_principal=excluded.fornecedor_principal""",
+        (stock_id,fornecedor_id,ref,preco,prazo,principal))
     conn.commit(); cur.close(); conn.close()
 
 def remover_fornecedor_stock(stock_id, fornecedor_id):
@@ -498,7 +501,7 @@ def definir_fornecedor_principal(stock_id, fornecedor_id):
 def listar_eventos(ano=None, mes=None):
     conn=_conn(); cur=conn.cursor(dictionary=True)
     if ano and mes:
-        cur.execute("SELECT * FROM eventos WHERE YEAR(data)=%s AND MONTH(data)=%s ORDER BY data",(ano,mes))
+        cur.execute("SELECT * FROM eventos WHERE strftime('%Y', data)=%s AND strftime('%m', data)=%s ORDER BY data",(str(ano), f"{int(mes):02d}"))
     else:
         cur.execute("SELECT * FROM eventos ORDER BY data DESC")
     r=cur.fetchall(); cur.close(); conn.close(); return r

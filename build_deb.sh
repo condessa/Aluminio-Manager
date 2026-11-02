@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.6.0}
+VERSION=${1:-2.0.0}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -21,10 +21,8 @@ mkdir -p "$ICONS_DIR/512x512/apps"
 
 # Copiar ficheiros da aplicação
 cp main.py version.py requirements.txt "$INSTALL_DIR/"
-cp packaging/configurar_bd.sh "$INSTALL_DIR/"
 if [ -d wheels ]; then cp -r wheels "$INSTALL_DIR/wheels"; fi
 if [ -f credentials.json ]; then cp credentials.json "$INSTALL_DIR/"; fi
-chmod 755 "$INSTALL_DIR/configurar_bd.sh"
 cp -r db modules "$INSTALL_DIR/"
 
 # Copiar ícones
@@ -82,7 +80,7 @@ PYVER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/n
 PYNUM="$(printf '%s' "$PYVER" | tr -d '.')"
 LIB="/usr/share/aluminio-manager/lib/${PYVER}"
 WHEELS="/usr/share/aluminio-manager/wheels"
-if [ -n "$PYVER" ] && ! PYTHONPATH="$LIB" python3 -c "import PyQt6, numpy, matplotlib, mysql.connector, cryptography, reportlab, openpyxl, dateutil, pyhanko" >/dev/null 2>&1; then
+if [ -n "$PYVER" ] && ! PYTHONPATH="$LIB" python3 -c "import PyQt6, numpy, matplotlib, cryptography, reportlab, openpyxl, dateutil, pyhanko" >/dev/null 2>&1; then
     if [ -d "$WHEELS" ]; then
         echo "   A instalar bibliotecas Python (${PYVER}) a partir do pacote…"
         mkdir -p "$LIB"
@@ -109,15 +107,6 @@ chmod 755 /etc/aluminio-manager
 gtk-update-icon-cache -f -t /usr/share/icons/hicolor/ 2>/dev/null || true
 update-desktop-database /usr/share/applications/ 2>/dev/null || true
 
-# ── Base de dados ────────────────────────────────────────────────────────
-# Cria a base de dados e deixa a configuração legível para a aplicação.
-if [ -x /usr/share/aluminio-manager/configurar_bd.sh ]; then
-    /usr/share/aluminio-manager/configurar_bd.sh "${SUDO_USER:-}" || {
-        echo "   AVISO: a base de dados não pôde ser preparada automaticamente."
-        echo "   Abra o programa e use «Configurar automaticamente»."
-    }
-fi
-
 echo ""
 echo "✅ AluminioManager instalado com sucesso!"
 echo "   Execute: aluminio-manager"
@@ -143,7 +132,7 @@ Section: office
 Priority: optional
 Architecture: amd64
 Installed-Size: ${SIZE}
-Depends: python3 (>= 3.10), mariadb-server | default-mysql-server, mariadb-client | mysql-client
+Depends: python3 (>= 3.10)
 Recommends: python3-pyqt6
 Maintainer: HCsoftware <hcsoftware@hcsoftware.pt>
 Description: Aluminios Manager by HCsoftware

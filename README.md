@@ -1,4 +1,4 @@
-# ⚙️ Aluminios Manager v1.6.0
+# ⚙️ Aluminios Manager v2.0.0
 **by HCsoftware**
 
 Sistema de gestão completo para oficinas de alumínio e caixilharia.
@@ -26,14 +26,12 @@ Sistema de gestão completo para oficinas de alumínio e caixilharia.
 
 ### Requisitos
 - Windows 10/11 (64-bit)
-- [XAMPP](https://www.apachefriends.org) com MySQL/MariaDB
+- Instalador `AluminioManager-Setup-*.exe` (não precisa de XAMPP nem MySQL)
 
 ### Passos
-1. Descarregar e instalar o [XAMPP](https://www.apachefriends.org)
-2. Abrir o XAMPP Control Panel e iniciar o **MySQL**
-3. Descarregar e executar o instalador `AluminioManager_Setup_v1.1.0.exe`
-4. Seguir o assistente de instalação
-5. Executar o **AluminioManager** a partir do atalho criado
+1. Descarregar e executar o instalador `AluminioManager-Setup-*.exe`
+2. Seguir o assistente de instalação (não pede administrador)
+3. Executar o **AluminioManager** a partir do atalho criado
 
 ---
 
@@ -42,20 +40,18 @@ Sistema de gestão completo para oficinas de alumínio e caixilharia.
 ### Requisitos
 - Debian 12+ / Ubuntu 22.04+ (64-bit)
 - Python 3.10+
-- MySQL 8.0+ ou MariaDB 10.6+
+- Nenhum servidor de base de dados (SQLite incluído)
 
 ### Passos
 ```bash
-sudo dpkg -i aluminio-manager_1.6.0_amd64.deb
+sudo dpkg -i aluminio-manager_2.0.0_amd64.deb
 ```
 
 O pacote inclui as bibliotecas Python para as versões 3.10 a 3.13, por isso a instalação
 funciona **sem Internet**. O ficheiro é maior (~340 MB) e pode ser copiado para USB.
 
-A base de dados e o utilizador MySQL são criados durante a instalação. Se a ligação
-falhar, o programa mostra um botão **«Configurar automaticamente»** — pede a palavra-passe
-do sistema, cria tudo e guarda a configuração, sem terminal. Os dados também podem ser
-introduzidos à mão, e há comandos SQL prontos a copiar para administradores.
+A base de dados é criada automaticamente na primeira execução, em
+`~/.config/aluminio-manager/aluminio.db`. Não é preciso MySQL, MariaDB nem XAMPP.
 
 Na primeira execução será apresentado um assistente de configuração para:
 1. Definir os dados da empresa
@@ -73,8 +69,8 @@ aluminio-manager
 
 | Plataforma | Ficheiro |
 |------------|---------|
-| **Windows 10/11** | [AluminioManager_Setup_v1.1.0.exe](https://github.com/condessa/Aluminio-Manager/releases/download/v1.1.0/AluminioManager_Setup_v1.1.0.exe) |
-| **Debian/Ubuntu** | [aluminio-manager_1.6.0_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.6.0/aluminio-manager_1.6.0_amd64.deb) |
+| **Windows 10/11** | [AluminioManager-Setup-2.0.0.exe](https://github.com/condessa/Aluminio-Manager/releases/download/v2.0.0/AluminioManager-Setup-2.0.0.exe) |
+| **Debian/Ubuntu** | [aluminio-manager_2.0.0_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v2.0.0/aluminio-manager_2.0.0_amd64.deb) |
 
 ---
 

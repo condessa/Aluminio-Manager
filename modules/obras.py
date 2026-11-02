@@ -1044,7 +1044,7 @@ class FasesDialog(QDialog):
 
         for fase, ordem in fases_padrao:
             cursor.execute(
-                "INSERT IGNORE INTO obra_fases (obra_id, fase, estado, ordem) VALUES (%s, %s, 'pendente', %s)",
+                "INSERT OR IGNORE INTO obra_fases (obra_id, fase, estado, ordem) VALUES (%s, %s, 'pendente', %s)",
                 (self.obra["id"], fase, ordem)
             )
 
