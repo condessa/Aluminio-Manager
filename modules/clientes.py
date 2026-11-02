@@ -43,10 +43,10 @@ class ClientesWidget(QWidget):
         
         # Tabela de clientes
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(6)
         
         # Cabeçalhos
-        headers = ["Nome", "NIF", "Tipo", "Localidade", "Telefone", "Email", "Ações"]
+        headers = ["Nome", "NIF", "Localidade", "Telefone", "Email", "Ações"]
         self.table.setHorizontalHeaderLabels(headers)
         
         # Ajuste das larguras das colunas
@@ -60,25 +60,21 @@ class ClientesWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         self.table.setColumnWidth(1, 90)
         
-        # Tipo: 100px (para "Cliente" ou "Fornecedor")
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(2, 100)
-        
         # Localidade: 200px (para "Armação de Pêra")
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(3, 200)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(2, 200)
         
         # Telefone: 110px
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(4, 110)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(3, 110)
         
         # Email: 300px (para emails completos)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(5, 300)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(4, 300)
         
         # Ações: 100px
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(6, 100)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(5, 100)
         
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -135,25 +131,18 @@ class ClientesWidget(QWidget):
             item_nif.setForeground(QColor(COR_TEXTO))
             self.table.setItem(r, 1, item_nif)
 
-            # Coluna Tipo - centralizado
-            tipo = c.get("tipo", "cliente")
-            item_tipo = QTableWidgetItem("Cliente" if tipo == "cliente" else "Fornecedor")
-            item_tipo.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            item_tipo.setForeground(QColor(COR_LARANJA))
-            self.table.setItem(r, 2, item_tipo)
-
             # Coluna Localidade - centralizado
             item_local = QTableWidgetItem(c.get("localidade", ""))
             item_local.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
             item_local.setForeground(QColor(COR_TEXTO))
-            self.table.setItem(r, 3, item_local)
+            self.table.setItem(r, 2, item_local)
 
             # Coluna Telefone - centralizado
             telefone = c.get("telefone", "")
             item_tel = QTableWidgetItem(telefone)
             item_tel.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item_tel.setForeground(QColor(COR_TEXTO))
-            self.table.setItem(r, 4, item_tel)
+            self.table.setItem(r, 3, item_tel)
 
             # Coluna Email - centralizado
             email = c.get("email", "")
@@ -161,7 +150,7 @@ class ClientesWidget(QWidget):
             item_email.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item_email.setToolTip(email)
             item_email.setForeground(QColor(COR_TEXTO))
-            self.table.setItem(r, 5, item_email)
+            self.table.setItem(r, 4, item_email)
 
             # Coluna Ações - ESTILO IGUAL A FUNCIONÁRIOS
             acoes = QWidget()
@@ -212,7 +201,7 @@ class ClientesWidget(QWidget):
             layout.addWidget(btn_eliminar)
             layout.addStretch()
 
-            self.table.setCellWidget(r, 6, acoes)
+            self.table.setCellWidget(r, 5, acoes)
 
         self.table.resizeRowsToContents()
 
