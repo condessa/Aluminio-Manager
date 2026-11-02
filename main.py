@@ -3,10 +3,27 @@ import sys
 import importlib
 import mysql.connector
 from PyQt6.QtWidgets import QApplication, QMessageBox, QDialog
+from PyQt6.QtGui import QIcon
 from db.database import get_connection as conectar, load_config, SCHEMA_SQL
 import traceback
 
 from modules import registo
+
+
+def _caminho_icone():
+    from pathlib import Path
+
+    bases = []
+    if getattr(sys, "_MEIPASS", None):
+        bases.append(Path(sys._MEIPASS))
+    aqui = Path(__file__).resolve().parent
+    bases += [aqui, aqui / "packaging"]
+    for base in bases:
+        for nome in ("hcsoftware.ico", "hcsoftware.png"):
+            caminho = base / nome
+            if caminho.exists():
+                return str(caminho)
+    return ""
 
 
 def _erro_global(tipo, valor, tb):
@@ -186,6 +203,16 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("Aluminios Manager by HCsoftware")
+    icone = _caminho_icone()
+    if icone:
+        app.setWindowIcon(QIcon(icone))
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "HCsoftware.AluminioManager")
+        except Exception:
+            pass
     app.setStyle("Fusion")
     app.setStyleSheet("""
         QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QDateEdit {

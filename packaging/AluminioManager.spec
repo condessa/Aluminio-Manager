@@ -17,6 +17,8 @@ for pacote in ("pyhanko", "pyhanko_certvalidator", "matplotlib", "mysql.connecto
 
 if os.path.exists(os.path.join(ROOT, "credentials.json")):
     datas.append((os.path.join(ROOT, "credentials.json"), "."))
+datas.append((os.path.join(BASE, "hcsoftware.ico"), "."))
+datas.append((os.path.join(BASE, "hcsoftware.png"), "."))
 
 a = Analysis(
     [os.path.join(ROOT, "main.py")],
@@ -34,14 +36,22 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="AluminioManager",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
     console=False,
-    icon=os.path.join(BASE, "aluminio.ico"),
+    icon=os.path.join(BASE, "hcsoftware.ico"),
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    name="AluminioManager",
 )
