@@ -127,3 +127,25 @@ def enviar_mensagem(msg):
     bruto = base64.urlsafe_b64encode(msg.as_bytes()).decode()
     servico = build("gmail", "v1", credentials=creds, cache_discovery=False)
     servico.users().messages().send(userId="me", body={"raw": bruto}).execute()
+
+
+# ── compatibilidade com a interface usada nas Configurações ──────────────
+
+def gmail_configurado():
+    return configurado()
+
+
+def get_email_configurado():
+    return conta()
+
+
+def ligar_gmail(email_hint=""):
+    """Assinatura antiga: devolve (ok, email)."""
+    try:
+        return True, autorizar()
+    except Exception as exc:
+        return False, str(exc)
+
+
+def desligar_gmail():
+    desligar()
