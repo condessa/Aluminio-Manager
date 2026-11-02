@@ -1,31 +1,105 @@
 """AluminioManager — Ligação MySQL e schema"""
+import hashlib
+import json
+import os
+from pathlib import Path
+
 import mysql.connector
 from mysql.connector import Error
-import hashlib, json
-from datetime import datetime
 
 DEFAULT_CONFIG = {"host":"localhost","port":3306,"database":"aluminio_manager","user":"aluminio_user","password":"aluminio_pass"}
-CONFIG_FILE = "db_config.json"
+APP_DIR = "aluminio-manager"
+CONFIG_FILENAME = "db_config.json"
+
+# Comandos que o utilizador pode colar no terminal quando ainda não existe base de dados.
+COMANDOS_SQL = """sudo mysql <<'SQL'
+CREATE DATABASE IF NOT EXISTS aluminio_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'aluminio_user'@'localhost' IDENTIFIED BY 'aluminio_pass';
+GRANT ALL PRIVILEGES ON aluminio_manager.* TO 'aluminio_user'@'localhost';
+FLUSH PRIVILEGES;
+SQL"""
+
+
+def caminho_config():
+    """Onde a configuração é gravada: ~/.config/aluminio-manager/db_config.json.
+
+    A variável ALUMINIO_DB_CONFIG permite escolher outro ficheiro (útil em testes
+    e em instalações geridas).
+    """
+    escolhido = os.environ.get("ALUMINIO_DB_CONFIG")
+    if escolhido:
+        return Path(escolhido).expanduser()
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return Path(base) / APP_DIR / CONFIG_FILENAME
+
+
+def locais_config():
+    """Ordem de procura: escolhido, ~/.config, /etc e pasta actual (legado)."""
+    caminhos = [caminho_config(), Path("/etc") / APP_DIR / CONFIG_FILENAME, Path(CONFIG_FILENAME)]
+    return [c for i, c in enumerate(caminhos) if c not in caminhos[:i]]
+
 
 def load_config():
-    try:
-        with open(CONFIG_FILE) as f: return json.load(f)
-    except: return DEFAULT_CONFIG.copy()
+    for caminho in locais_config():
+        try:
+            with open(caminho, encoding="utf-8") as f:
+                dados = json.load(f)
+            if isinstance(dados, dict):
+                return {**DEFAULT_CONFIG, **dados}
+        except (OSError, ValueError):
+            continue
+    return DEFAULT_CONFIG.copy()
+
 
 def save_config(cfg):
-    with open(CONFIG_FILE,"w") as f: json.dump(cfg,f,indent=2)
+    """Grava a configuração em ~/.config (legível só pelo utilizador)."""
+    destino = caminho_config()
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    temporario = destino.with_name(destino.name + ".tmp")
+    with open(temporario, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    os.chmod(temporario, 0o600)
+    os.replace(temporario, destino)
+    return destino
+
+
+def descrever_erro(erro):
+    """Transforma o erro do conector numa explicação útil para o utilizador."""
+    codigo = getattr(erro, "errno", None)
+    if codigo is None and getattr(erro, "args", None):
+        primeiro = erro.args[0]
+        codigo = getattr(primeiro, "errno", None)
+    if codigo in (2002, 2003, 2005):
+        return ("Não foi possível contactar o servidor MySQL/MariaDB.\n\n"
+                "Confirma que está instalado e a correr:\n"
+                "    sudo systemctl start mariadb")
+    if codigo == 1045:
+        return ("O servidor respondeu, mas recusou o utilizador ou a palavra-passe.\n\n"
+                "Se é a primeira instalação, cria a base de dados e o utilizador com os "
+                "comandos do botão «Copiar comandos SQL».")
+    if codigo == 1049:
+        return ("O servidor está acessível, mas a base de dados ainda não existe.\n\n"
+                "Usa «Copiar comandos SQL» para a criar.")
+    if codigo == 1044:
+        return "O utilizador existe, mas não tem permissões sobre essa base de dados."
+    return str(erro)
+
 
 def get_connection():
     cfg = load_config()
     return mysql.connector.connect(host=cfg["host"],port=cfg["port"],database=cfg["database"],
         user=cfg["user"],password=cfg["password"],charset="utf8mb4",collation="utf8mb4_unicode_ci",autocommit=False)
 
-def test_connection(cfg):
+def test_connection(cfg, com_base=True):
+    """Testa a ligação. Com com_base=False só verifica servidor e credenciais."""
     try:
-        c = mysql.connector.connect(host=cfg["host"],port=cfg["port"],user=cfg["user"],
-            password=cfg["password"],charset="utf8mb4",connection_timeout=5)
+        parametros = dict(host=cfg["host"], port=int(cfg["port"]), user=cfg["user"],
+                          password=cfg["password"], charset="utf8mb4", connection_timeout=5)
+        if com_base:
+            parametros["database"] = cfg["database"]
+        c = mysql.connector.connect(**parametros)
         c.close(); return True,"Ligação bem-sucedida!"
-    except Error as e: return False,str(e)
+    except Error as e: return False, descrever_erro(e)
 
 def hash_password(pwd): return hashlib.sha256(pwd.encode()).hexdigest()
 
@@ -73,8 +147,8 @@ INSERT IGNORE INTO stock_categorias (nome,cor) VALUES ('Perfis de Alumínio','#6
 INSERT IGNORE INTO oficina (chave,valor) VALUES ('nome',''),('nif',''),('morada',''),('localidade',''),('telefone',''),('telemovel',''),('email',''),('responsavel',''),('iban',''),('smtp_host',''),('smtp_port','');
 """
 
-def criar_base_dados():
-    cfg = load_config()
+def criar_base_dados(cfg=None):
+    cfg = cfg or load_config()
     conn = mysql.connector.connect(host=cfg["host"],port=cfg["port"],user=cfg["user"],password=cfg["password"],charset="utf8mb4")
     cursor = conn.cursor()
     for stmt in SCHEMA_SQL.strip().split(";"):

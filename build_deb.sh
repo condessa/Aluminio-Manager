@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.1.0}
+VERSION=${1:-1.1.1}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -102,6 +102,43 @@ chmod 755 /etc/aluminio-manager
 gtk-update-icon-cache -f -t /usr/share/icons/hicolor/ 2>/dev/null || true
 update-desktop-database /usr/share/applications/ 2>/dev/null || true
 
+# ── Base de dados ────────────────────────────────────────────────────────
+# Numa instalação nova, cria a base de dados e o utilizador para o programa
+# arrancar logo. Nunca mexe numa configuração já existente.
+DB_CONFIG=/etc/aluminio-manager/db_config.json
+if command -v mysql >/dev/null 2>&1 && [ ! -f "$DB_CONFIG" ]; then
+    systemctl start mariadb 2>/dev/null || systemctl start mysql 2>/dev/null || true
+    DB_PASS="$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)"
+    if mysql --protocol=socket -uroot -e "SELECT 1" >/dev/null 2>&1; then
+        if mysql --protocol=socket -uroot <<SQL
+CREATE DATABASE IF NOT EXISTS aluminio_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'aluminio_user'@'localhost' IDENTIFIED BY '${DB_PASS}';
+ALTER USER 'aluminio_user'@'localhost' IDENTIFIED BY '${DB_PASS}';
+GRANT ALL PRIVILEGES ON aluminio_manager.* TO 'aluminio_user'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+        then
+            mkdir -p /etc/aluminio-manager
+            umask 077
+            cat > "$DB_CONFIG" <<JSON
+{"host": "localhost", "port": 3306, "database": "aluminio_manager", "user": "aluminio_user", "password": "${DB_PASS}"}
+JSON
+            if [ -n "${SUDO_USER:-}" ] && id "$SUDO_USER" >/dev/null 2>&1; then
+                chown "$SUDO_USER":"$SUDO_USER" "$DB_CONFIG"
+            fi
+            chmod 600 "$DB_CONFIG"
+            umask 022
+            echo "   Base de dados preparada (utilizador aluminio_user)."
+        else
+            echo "   AVISO: não foi possível preparar a base de dados."
+            echo "   Ao abrir, o programa pede os dados de ligação."
+        fi
+    else
+        echo "   AVISO: o MySQL/MariaDB não respondeu como root."
+        echo "   Ao abrir, o programa pede os dados de ligação."
+    fi
+fi
+
 echo ""
 echo "✅ AluminioManager instalado com sucesso!"
 echo "   Execute: aluminio-manager"
@@ -127,7 +164,7 @@ Section: office
 Priority: optional
 Architecture: amd64
 Installed-Size: ${SIZE}
-Depends: python3 (>= 3.10), python3-pip, mariadb-client | mysql-client
+Depends: python3 (>= 3.10), python3-pip, mariadb-server | default-mysql-server, mariadb-client | mysql-client
 Recommends: python3-pyqt6
 Maintainer: HCsoftware <hcsoftware@hcsoftware.pt>
 Description: Aluminios Manager by HCsoftware
@@ -138,7 +175,7 @@ EOF
 
 # Construir .deb
 mkdir -p dist
-dpkg-deb --build "$BUILD_DIR" "dist/${APP}_${VERSION}_amd64.deb"
+dpkg-deb --root-owner-group --build "$BUILD_DIR" "dist/${APP}_${VERSION}_amd64.deb"
 
 echo ""
 echo "✅ Pacote criado: dist/${APP}_${VERSION}_amd64.deb"

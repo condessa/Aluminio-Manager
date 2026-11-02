@@ -158,12 +158,18 @@ def main():
         }
     """)
 
-    # Inicializar BD
-    try:
-        inicializar_bd()
-    except Exception as e:
-        QMessageBox.critical(None, "Erro", f"Erro na base de dados:\n{e}\n\nVerifique se o MySQL/MariaDB está instalado e a correr.")
-        sys.exit(1)
+    # Inicializar BD — se falhar, pedir os dados de ligação ao utilizador
+    from modules.db_setup import DialogoBaseDados
+
+    while True:
+        try:
+            inicializar_bd()
+            break
+        except Exception as e:
+            print(f"[DB] Erro de ligação: {e}")
+            dialogo = DialogoBaseDados(e)
+            if dialogo.exec() != QDialog.DialogCode.Accepted:
+                sys.exit(1)
 
 
 
