@@ -43,10 +43,10 @@ class ClientesWidget(QWidget):
         
         # Tabela de clientes
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(7)
         
         # Cabeçalhos
-        headers = ["Nome", "NIF", "Localidade", "Telefone", "Email", "Ações"]
+        headers = ["Nome", "NIF", "Localidade", "Telefone", "Telemóvel", "Email", "Ações"]
         self.table.setHorizontalHeaderLabels(headers)
         
         # Ajuste das larguras das colunas
@@ -68,13 +68,17 @@ class ClientesWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
         self.table.setColumnWidth(3, 110)
         
-        # Email: 300px (para emails completos)
+        # Telemóvel: 110px
         self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(4, 300)
+        self.table.setColumnWidth(4, 110)
+        
+        # Email: 300px (para emails completos)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(5, 300)
         
         # Ações: 100px
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(5, 100)
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(6, 100)
         
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -144,13 +148,20 @@ class ClientesWidget(QWidget):
             item_tel.setForeground(QColor(COR_TEXTO))
             self.table.setItem(r, 3, item_tel)
 
+            # Coluna Telemóvel - centralizado
+            telemovel = c.get("telemovel", "") or ""
+            item_telm = QTableWidgetItem(telemovel)
+            item_telm.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            item_telm.setForeground(QColor(COR_TEXTO))
+            self.table.setItem(r, 4, item_telm)
+
             # Coluna Email - centralizado
             email = c.get("email", "")
             item_email = QTableWidgetItem(email)
             item_email.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item_email.setToolTip(email)
             item_email.setForeground(QColor(COR_TEXTO))
-            self.table.setItem(r, 4, item_email)
+            self.table.setItem(r, 5, item_email)
 
             # Coluna Ações - ESTILO IGUAL A FUNCIONÁRIOS
             acoes = QWidget()
@@ -201,7 +212,7 @@ class ClientesWidget(QWidget):
             layout.addWidget(btn_eliminar)
             layout.addStretch()
 
-            self.table.setCellWidget(r, 5, acoes)
+            self.table.setCellWidget(r, 6, acoes)
 
         self.table.resizeRowsToContents()
 
