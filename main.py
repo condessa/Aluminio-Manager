@@ -120,6 +120,19 @@ def _verificar_aniversarios(parent):
         print(f"[Aniversários] Erro: {e}")
 
 
+def _obter_utilizador(username):
+    """Vai buscar o utilizador criado no assistente inicial."""
+    try:
+        conn = conectar()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM utilizadores WHERE username=%s AND ativo=1", (username,))
+        user = cur.fetchone()
+        cur.close(); conn.close()
+        return user
+    except Exception:
+        return None
+
+
 def main():
     # Configura backup automático silenciosamente
     try:
@@ -177,29 +190,36 @@ def main():
     import modules.dao as dao
     importlib.reload(dao)
 
-    # PRIMEIRO: Configuração da oficina (antes da licença)
+    # Configuração da oficina (primeira execução)
     from modules.configuracao import oficina_configurada, ConfiguracaoInicialDialog
     
     # Verificar se a oficina precisa de configuração
     precisa_config = not oficina_configurada()
-    
+    utilizador_inicial = None
+
     if precisa_config:
         print("[CONFIG] Primeira execução — a mostrar wizard...")
         cfg = ConfiguracaoInicialDialog()
         if cfg.exec() != QDialog.DialogCode.Accepted:
             sys.exit(0)
+        # A conta foi criada agora: entrar sem pedir login outra vez.
+        utilizador_inicial = getattr(cfg, "utilizador_criado", None)
         print("[CONFIG] Configuração guardada com sucesso!")
     
     from modules.login import LoginDialog
     from modules.main_window import MainWindow
 
     while True:
-        # Login
-        dlg = LoginDialog()
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            break
-
-        utilizador = dlg.utilizador
+        if utilizador_inicial:
+            utilizador = _obter_utilizador(utilizador_inicial)
+            utilizador_inicial = None
+            if utilizador is None:
+                continue  # conta não encontrada: volta ao login normal
+        else:
+            dlg = LoginDialog()
+            if dlg.exec() != QDialog.DialogCode.Accepted:
+                break
+            utilizador = dlg.utilizador
 
         # Janela principal
         win = MainWindow(utilizador)

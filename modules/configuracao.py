@@ -93,6 +93,7 @@ class ConfiguracaoInicialDialog(QDialog):
         self.setWindowTitle("AluminioManager — Configuração Inicial")
         self.setFixedSize(520, 560)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowTitleHint)
+        self.utilizador_criado = None
         self._build()
 
     def _build(self):
@@ -382,6 +383,7 @@ class ConfiguracaoInicialDialog(QDialog):
                 cur2.execute("INSERT INTO utilizadores (nome, username, password_hash, perfil, ativo) VALUES (%s,%s,%s,%s,%s)",
                     (admin_nome, admin_user, hash_password(admin_pass), "admin", 1))
                 conn2.commit()
+                self.utilizador_criado = admin_user
             cur2.close(); conn2.close()
             gerar_certificado(nome, email)
             self.accept()
