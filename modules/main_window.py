@@ -76,49 +76,11 @@ class MainWindow(QMainWindow):
         root.addWidget(self._build_sidebar())
         rw = QWidget(); rl = QVBoxLayout(rw); rl.setContentsMargins(0,0,0,0); rl.setSpacing(0)
         rl.addWidget(self._build_topbar())
-        # Banner trial
-        from modules.licenca import verificar
-        lic = verificar()
-        self._lic_estado = lic.get("estado","")
-        self._lic_dias   = lic.get("dias_restantes",0)
-        self._banner_trial = QFrame()
-        self._banner_trial.setFixedHeight(36)
-        bl_t = QHBoxLayout(self._banner_trial)
-        bl_t.setContentsMargins(16,0,16,0)
-        if self._lic_estado == "trial":
-            self._banner_trial.setStyleSheet("background:#fff3cd;border-bottom:1px solid #ffd060;")
-            lbl = QLabel(f"⏳  Versão de avaliação  —  <b>{self._lic_dias} dias restantes</b>  |  Registe para acesso ilimitado.")
-            lbl.setStyleSheet("color:#7a5000;font-size:12px;")
-            btn_reg = QPushButton("🔑  Registar agora")
-            btn_reg.setFixedHeight(24)
-            btn_reg.setStyleSheet("background:#d4560a;color:white;border:none;border-radius:6px;padding:0 12px;font-size:11px;font-weight:700;")
-            btn_reg.clicked.connect(self._registar_licenca)
-            bl_t.addWidget(lbl); bl_t.addStretch(); bl_t.addWidget(btn_reg)
-            self._banner_trial.setVisible(True)
-        else:
-            self._banner_trial.setVisible(False)
-
         self.stack = QStackedWidget()
         for _, (_, w) in self._pages.items(): self.stack.addWidget(w)
-        rl.addWidget(self._banner_trial)
         rl.addWidget(self.stack); root.addWidget(rw)
-        from modules.licenca import verificar
-        lic = verificar()
-        estado = lic.get("estado","")
-        dias = lic.get("dias_restantes",0)
-        if estado == "trial":
-            trial_txt = f"  ⏳ TRIAL — {dias} dias restantes  |"
-        elif estado == "ativo":
-            trial_txt = ""
-        else:
-            trial_txt = "  ⚠️ LICENÇA EXPIRADA  |"
-        self._trial_estado = estado
-        self._trial_dias = dias
-        self.statusBar().showMessage(f"{trial_txt}  ⚙  Aluminios Manager by HCsoftware  ·  {self.utilizador['nome']}  ·  {self.utilizador['perfil'].upper()}")
-        if estado == "trial":
-            self.statusBar().setStyleSheet("background:#fff3cd;color:#7a5000;font-weight:600;")
-        elif estado == "expirado":
-            self.statusBar().setStyleSheet("background:#fde8e0;color:#c0392b;font-weight:600;")
+        self.statusBar().showMessage(
+            f"⚙  Aluminios Manager by HCsoftware  ·  {self.utilizador['nome']}  ·  {self.utilizador['perfil'].upper()}")
 
     def _build_sidebar(self):
         sb = QWidget(); sb.setFixedWidth(220)
@@ -305,18 +267,6 @@ class MainWindow(QMainWindow):
         inp.returnPressed.connect(_verificar)
         inp.setFocus(); dlg.exec()
 
-    def _registar_licenca(self):
-        from modules.licenca_dialog import LicencaDialog
-        from modules.licenca import verificar
-        dlg = LicencaDialog("trial", self._lic_dias, self)
-        if dlg.exec() == dlg.DialogCode.Accepted:
-            lic = verificar()
-            if lic.get("estado") == "ativo":
-                self._banner_trial.setVisible(False)
-                from PyQt6.QtWidgets import QMessageBox
-                QMessageBox.information(self, "✅ Registado",
-                    "Licença activada! Obrigado por registar o AluminioManager.")
-
     def _configuracoes(self):
         from modules.configuracao import ConfiguracaoDialog
         d = ConfiguracaoDialog(parent=self)
@@ -438,10 +388,10 @@ class MainWindow(QMainWindow):
 <tr><td style='color:#6b7c8e;'>Contacto:</td><td><b>condessasilva@gmail.com</b></td></tr>
 <tr><td style='color:#6b7c8e;'>Plataforma:</td><td><b>Python 3 + PyQt6</b></td></tr>
 <tr><td style='color:#6b7c8e;'>Base de dados:</td><td><b>MySQL / MariaDB</b></td></tr>
-<tr><td style='color:#6b7c8e;'>Licença:</td><td><b>Proprietária — HCsoftware</b></td></tr>
+<tr><td style='color:#6b7c8e;'>Licença:</td><td><b>GPLv3 — software livre</b></td></tr>
 </table>
 <hr style='border:none;border-top:1px solid #e8edf2;margin:20px 0;'/>
-<p style='color:#9aaabb;font-size:10px;'>© 2026 HCsoftware — Todos os direitos reservados</p>
+<p style='color:#9aaabb;font-size:10px;'>© 2026 HCsoftware — Licença GPLv3</p>
 </div>
 """)
 

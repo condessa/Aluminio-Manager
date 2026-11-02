@@ -190,38 +190,6 @@ def main():
             sys.exit(0)
         print("[CONFIG] Configuração guardada com sucesso!")
     
-    # DEPOIS: Verificar licença (agora já com a oficina configurada)
-    from modules.licenca import verificar, inicializar
-    from modules.licenca_dialog import LicencaDialog
-    
-    estado = verificar()
-    
-    # Primeira execução — registar trial (mas só depois da oficina configurada)
-    if estado.get("estado") == "nao_registado":
-        inicializar()
-        estado = verificar()
-    
-    s = estado.get("estado", "")
-    dias = estado.get("dias_restantes", 0)
-    
-    # Trial com poucos dias — avisar mas deixar entrar
-    if s == "trial" and dias <= 5:
-        dlg = LicencaDialog("trial", dias)
-        dlg.exec()
-        # Verificar se activou
-        estado = verificar()
-        if estado.get("estado") == "expirado":
-            sys.exit(0)
-    
-    # Trial expirado — bloquear
-    elif s == "expirado":
-        dlg = LicencaDialog("expirado", 0)
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            sys.exit(0)
-        estado = verificar()
-        if estado.get("estado") != "ativo":
-            sys.exit(0)
-
     from modules.login import LoginDialog
     from modules.main_window import MainWindow
 

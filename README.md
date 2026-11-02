@@ -1,4 +1,4 @@
-# ⚙️ Aluminios Manager v1.1.1
+# ⚙️ Aluminios Manager v1.2.0
 **by HCsoftware**
 
 Sistema de gestão completo para oficinas de alumínio e caixilharia.
@@ -46,7 +46,7 @@ Sistema de gestão completo para oficinas de alumínio e caixilharia.
 
 ### Passos
 ```bash
-sudo dpkg -i aluminio-manager_1.1.1_amd64.deb
+sudo dpkg -i aluminio-manager_1.2.0_amd64.deb
 ```
 
 A base de dados e o utilizador MySQL são criados durante a instalação. Se a ligação
@@ -70,7 +70,7 @@ aluminio-manager
 | Plataforma | Ficheiro |
 |------------|---------|
 | **Windows 10/11** | [AluminioManager_Setup_v1.1.0.exe](https://github.com/condessa/Aluminio-Manager/releases/download/v1.1.0/AluminioManager_Setup_v1.1.0.exe) |
-| **Debian/Ubuntu** | [aluminio-manager_1.1.1_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.1.1/aluminio-manager_1.1.1_amd64.deb) |
+| **Debian/Ubuntu** | [aluminio-manager_1.2.0_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.2.0/aluminio-manager_1.2.0_amd64.deb) |
 
 ---
 
@@ -87,11 +87,9 @@ aluminio-manager
 
 ## 🔑 Licença
 
-O AluminioManager funciona em modo de avaliação gratuita durante **30 dias**.  
-Para adquirir uma licença permanente contacte:
-
-- 📧 **Email:** condessasilva@gmail.com  
-- 📱 **MBWay:** 936 203 512  
+O AluminioManager é **gratuito, sem prazo e sem chaves de ativação**.  
+É software livre, distribuído nos termos da **GNU General Public License v3** — pode usar,
+estudar, alterar e redistribuir, desde que as versões derivadas mantenham a mesma licença.
 
 ---
 
