@@ -37,3 +37,6 @@ graficos_pdf*.py
 # Ficheiros antigos
 files/
 files.zip
+
+# Wheels para instalação offline
+wheels/

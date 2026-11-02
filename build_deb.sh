@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.3.0}
+VERSION=${1:-1.4.0}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -22,6 +22,7 @@ mkdir -p "$ICONS_DIR/512x512/apps"
 # Copiar ficheiros da aplicação
 cp main.py version.py requirements.txt "$INSTALL_DIR/"
 cp packaging/configurar_bd.sh "$INSTALL_DIR/"
+if [ -d wheels ]; then cp -r wheels "$INSTALL_DIR/wheels"; fi
 chmod 755 "$INSTALL_DIR/configurar_bd.sh"
 cp -r db modules "$INSTALL_DIR/"
 
@@ -75,14 +76,28 @@ EOF
 cat > "${DEBIAN_DIR}/postinst" << 'EOF'
 #!/bin/bash
 set -e
-# Dependências Python instaladas para a versão de Python do sistema.
+# Dependências Python extraídas dos wheels incluídos (sem Internet e sem pip).
 PYVER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo "")"
+PYNUM="$(printf '%s' "$PYVER" | tr -d '.')"
 LIB="/usr/share/aluminio-manager/lib/${PYVER}"
+WHEELS="/usr/share/aluminio-manager/wheels"
 if [ -n "$PYVER" ] && ! PYTHONPATH="$LIB" python3 -c "import PyQt6, numpy, matplotlib, mysql.connector, cryptography, reportlab, openpyxl, dateutil, pyhanko" >/dev/null 2>&1; then
-    echo "   A instalar dependências Python (${PYVER}) — só na primeira vez…"
-    python3 -m pip install --quiet --upgrade --target "$LIB" \
-        -r /usr/share/aluminio-manager/requirements.txt || \
-        echo "   AVISO: falha ao instalar dependências. Verifique a Internet e execute: sudo python3 -m pip install --target $LIB -r /usr/share/aluminio-manager/requirements.txt"
+    if [ -d "$WHEELS" ]; then
+        echo "   A instalar bibliotecas Python (${PYVER}) a partir do pacote…"
+        mkdir -p "$LIB"
+        for wheel in "$WHEELS"/*.whl; do
+            [ -f "$wheel" ] || continue
+            case "$(basename "$wheel")" in
+                *-abi3-*.whl|*-none-any.whl|*-cp${PYNUM}-*.whl)
+                    python3 -m zipfile -e "$wheel" "$LIB" 2>/dev/null || true
+                    ;;
+            esac
+        done
+    fi
+    if ! PYTHONPATH="$LIB" python3 -c "import PyQt6, numpy, matplotlib" >/dev/null 2>&1; then
+        echo "   AVISO: faltam bibliotecas para Python ${PYVER}."
+        echo "   O pacote inclui wheels para Python 3.10, 3.11, 3.12 e 3.13."
+    fi
 fi
 
 # Criar directório de config
@@ -127,7 +142,7 @@ Section: office
 Priority: optional
 Architecture: amd64
 Installed-Size: ${SIZE}
-Depends: python3 (>= 3.10), python3-pip, mariadb-server | default-mysql-server, mariadb-client | mysql-client
+Depends: python3 (>= 3.10), mariadb-server | default-mysql-server, mariadb-client | mysql-client
 Recommends: python3-pyqt6
 Maintainer: HCsoftware <hcsoftware@hcsoftware.pt>
 Description: Aluminios Manager by HCsoftware
