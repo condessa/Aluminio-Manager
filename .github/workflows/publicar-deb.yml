@@ -1,0 +1,73 @@
+name: Publicar instalador Linux
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Determinar versão
+        id: versao
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "valor=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "valor=1.1.1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Construir pacote .deb
+        run: bash build_deb.sh "${{ steps.versao.outputs.valor }}"
+
+      - name: Verificar pacote
+        run: |
+          PACOTE="dist/aluminio-manager_${{ steps.versao.outputs.valor }}_amd64.deb"
+          test -f "$PACOTE"
+          test -d "/tmp/aluminio-manager_${{ steps.versao.outputs.valor }}/usr/share/aluminio-manager/lib/PyQt6"
+          dpkg-deb -I "$PACOTE" | head -20
+          sha256sum "$PACOTE"
+
+      - name: Publicar release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.versao.outputs.valor }}
+          name: AluminioManager v${{ steps.versao.outputs.valor }} (Linux)
+          body: |
+            ## AluminioManager v${{ steps.versao.outputs.valor }} — instalação em Linux corrigida
+
+            Até agora, o pacote `.deb` não criava a base de dados e o programa abria com:
+
+            `1045 (28000): Access denied for user 'aluminio_user'@'localhost'`
+
+            ### O que mudou
+
+            - O pacote depende de `mariadb-server` e o `postinst` cria a base de dados e o
+              utilizador, com palavra-passe aleatória em `/etc/aluminio-manager/db_config.json`.
+            - Se a ligação falhar, o programa abre um assistente para indicar os dados,
+              **testar a ligação** e copiar os comandos SQL.
+            - A configuração passa a ficar em `~/.config/aluminio-manager/db_config.json`,
+              gravável por qualquer utilizador.
+            - Mensagens diferentes para servidor em baixo (2002/2003), credenciais recusadas
+              (1045) e base de dados inexistente (1049).
+
+            ### Instalação
+
+            ```bash
+            sudo dpkg -i aluminio-manager_${{ steps.versao.outputs.valor }}_amd64.deb
+            ```
+
+            O instalador Windows mantém-se na v1.1.0.
+          files: dist/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
