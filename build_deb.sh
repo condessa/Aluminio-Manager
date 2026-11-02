@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.2.0}
+VERSION=${1:-1.2.1}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -21,6 +21,8 @@ mkdir -p "$ICONS_DIR/512x512/apps"
 
 # Copiar ficheiros da aplicação
 cp main.py version.py requirements.txt "$INSTALL_DIR/"
+cp packaging/configurar_bd.sh "$INSTALL_DIR/"
+chmod 755 "$INSTALL_DIR/configurar_bd.sh"
 cp -r db modules "$INSTALL_DIR/"
 
 # Copiar ícones
@@ -103,40 +105,12 @@ gtk-update-icon-cache -f -t /usr/share/icons/hicolor/ 2>/dev/null || true
 update-desktop-database /usr/share/applications/ 2>/dev/null || true
 
 # ── Base de dados ────────────────────────────────────────────────────────
-# Numa instalação nova, cria a base de dados e o utilizador para o programa
-# arrancar logo. Nunca mexe numa configuração já existente.
-DB_CONFIG=/etc/aluminio-manager/db_config.json
-if command -v mysql >/dev/null 2>&1 && [ ! -f "$DB_CONFIG" ]; then
-    systemctl start mariadb 2>/dev/null || systemctl start mysql 2>/dev/null || true
-    DB_PASS="$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)"
-    if mysql --protocol=socket -uroot -e "SELECT 1" >/dev/null 2>&1; then
-        if mysql --protocol=socket -uroot <<SQL
-CREATE DATABASE IF NOT EXISTS aluminio_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'aluminio_user'@'localhost' IDENTIFIED BY '${DB_PASS}';
-ALTER USER 'aluminio_user'@'localhost' IDENTIFIED BY '${DB_PASS}';
-GRANT ALL PRIVILEGES ON aluminio_manager.* TO 'aluminio_user'@'localhost';
-FLUSH PRIVILEGES;
-SQL
-        then
-            mkdir -p /etc/aluminio-manager
-            umask 077
-            cat > "$DB_CONFIG" <<JSON
-{"host": "localhost", "port": 3306, "database": "aluminio_manager", "user": "aluminio_user", "password": "${DB_PASS}"}
-JSON
-            if [ -n "${SUDO_USER:-}" ] && id "$SUDO_USER" >/dev/null 2>&1; then
-                chown "$SUDO_USER":"$SUDO_USER" "$DB_CONFIG"
-            fi
-            chmod 600 "$DB_CONFIG"
-            umask 022
-            echo "   Base de dados preparada (utilizador aluminio_user)."
-        else
-            echo "   AVISO: não foi possível preparar a base de dados."
-            echo "   Ao abrir, o programa pede os dados de ligação."
-        fi
-    else
-        echo "   AVISO: o MySQL/MariaDB não respondeu como root."
-        echo "   Ao abrir, o programa pede os dados de ligação."
-    fi
+# Cria a base de dados e deixa a configuração legível para a aplicação.
+if [ -x /usr/share/aluminio-manager/configurar_bd.sh ]; then
+    /usr/share/aluminio-manager/configurar_bd.sh "${SUDO_USER:-}" || {
+        echo "   AVISO: a base de dados não pôde ser preparada automaticamente."
+        echo "   Abra o programa e use «Configurar automaticamente»."
+    }
 fi
 
 echo ""

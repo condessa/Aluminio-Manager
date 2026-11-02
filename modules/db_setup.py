@@ -4,6 +4,11 @@ Aparece quando o programa não consegue ligar-se ao MySQL/MariaDB — por exempl
 numa instalação nova, onde a base de dados e o utilizador ainda não existem.
 """
 
+import getpass
+import os
+import shutil
+import subprocess
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
@@ -31,17 +36,27 @@ from db.database import (
 )
 
 LARANJA = "#d4560a"
+SCRIPT_SISTEMA = "/usr/share/aluminio-manager/configurar_bd.sh"
 
 
 class DialogoBaseDados(QDialog):
-    """Pede os dados de ligação, testa-os e só depois os guarda."""
+    """Configura a ligação: automática (pkexec) ou manualmente."""
 
     def __init__(self, erro=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Configurar base de dados")
         self.setMinimumWidth(600)
         self._cfg = load_config()
+        self._automatico_disponivel = (
+            os.name == "posix"
+            and shutil.which("pkexec") is not None
+            and os.path.isfile(SCRIPT_SISTEMA)
+        )
+        self._construir(erro)
 
+    # ── construção ────────────────────────────────────────────────────────
+
+    def _construir(self, erro):
         exterior = QVBoxLayout(self)
         exterior.setSpacing(12)
 
@@ -58,8 +73,30 @@ class DialogoBaseDados(QDialog):
         self.lbl_erro.setVisible(bool(erro))
         exterior.addWidget(self.lbl_erro)
 
-        grupo = QGroupBox("Dados de ligação")
-        formulario = QFormLayout(grupo)
+        self.btn_auto = QPushButton("Configurar automaticamente")
+        self.btn_auto.setStyleSheet(
+            f"background:{LARANJA}; color:#ffffff; font-weight:700;"
+            "font-size:14px; padding:12px 18px; border-radius:8px;"
+        )
+        self.btn_auto.clicked.connect(self._automatico)
+        self.btn_auto.setVisible(self._automatico_disponivel)
+        exterior.addWidget(self.btn_auto)
+
+        self.lbl_dica = QLabel(
+            "Pede a palavra-passe do sistema, cria a base de dados e guarda a "
+            "configuração. Não é preciso terminal nem conhecimentos de SQL."
+        )
+        self.lbl_dica.setWordWrap(True)
+        self.lbl_dica.setStyleSheet("color:#5b6b7a; font-size:12px;")
+        self.lbl_dica.setVisible(self._automatico_disponivel)
+        exterior.addWidget(self.lbl_dica)
+
+        self.chk_manual = QCheckBox("Prefiro introduzir os dados de ligação manualmente")
+        self.chk_manual.toggled.connect(self._alternar_manual)
+        exterior.addWidget(self.chk_manual)
+
+        self.grupo = QGroupBox("Dados de ligação")
+        formulario = QFormLayout(self.grupo)
         formulario.setSpacing(8)
 
         self.inp_host = QLineEdit(self._cfg.get("host", "localhost"))
@@ -84,14 +121,15 @@ class DialogoBaseDados(QDialog):
         formulario.addRow("Utilizador:", self.inp_user)
         formulario.addRow("Palavra-passe:", self.inp_pass)
         formulario.addRow("", self.chk_mostrar)
-        exterior.addWidget(grupo)
+        self.grupo.setVisible(False)
+        exterior.addWidget(self.grupo)
 
         self.lbl_estado = QLabel()
         self.lbl_estado.setWordWrap(True)
         self.lbl_estado.setVisible(False)
         exterior.addWidget(self.lbl_estado)
 
-        self.chk_ajuda = QCheckBox("Ainda não existe a base de dados? Mostrar comandos")
+        self.chk_ajuda = QCheckBox("Ver os comandos SQL (para administradores)")
         self.chk_ajuda.toggled.connect(self._alternar_ajuda)
         exterior.addWidget(self.chk_ajuda)
 
@@ -110,12 +148,15 @@ class DialogoBaseDados(QDialog):
         exterior.addWidget(self.lbl_ficheiro)
 
         botoes = QHBoxLayout()
+
         self.btn_testar = QPushButton("Testar ligação")
         self.btn_testar.clicked.connect(self._testar)
+        self.btn_testar.setVisible(False)
         botoes.addWidget(self.btn_testar)
 
         self.btn_copiar = QPushButton("Copiar comandos SQL")
         self.btn_copiar.clicked.connect(self._copiar)
+        self.btn_copiar.setVisible(False)
         botoes.addWidget(self.btn_copiar)
         botoes.addStretch(1)
 
@@ -129,12 +170,21 @@ class DialogoBaseDados(QDialog):
             f"background:{LARANJA}; color:#ffffff; font-weight:600; padding:8px 18px; border-radius:6px;"
         )
         self.btn_guardar.clicked.connect(self._guardar)
+        self.btn_guardar.setVisible(False)
         botoes.addWidget(self.btn_guardar)
         exterior.addLayout(botoes)
 
-        self.inp_host.setFocus()
+        if not self._automatico_disponivel:
+            self.chk_manual.setChecked(True)
 
     # ── acções ────────────────────────────────────────────────────────────
+
+    def _alternar_manual(self, ativo):
+        self.grupo.setVisible(ativo)
+        self.btn_testar.setVisible(ativo)
+        self.btn_guardar.setVisible(ativo)
+        if ativo:
+            self.inp_host.setFocus()
 
     def _alternar_password(self, ativo):
         self.inp_pass.setEchoMode(
@@ -143,10 +193,7 @@ class DialogoBaseDados(QDialog):
 
     def _alternar_ajuda(self, ativo):
         self.ajuda.setVisible(ativo)
-        if ativo:
-            self.chk_ajuda.setText("Ainda não existe a base de dados? Esconder comandos")
-        else:
-            self.chk_ajuda.setText("Ainda não existe a base de dados? Mostrar comandos")
+        self.btn_copiar.setVisible(ativo)
 
     def _recolher(self):
         return {
@@ -165,6 +212,37 @@ class DialogoBaseDados(QDialog):
         )
         self.lbl_estado.setVisible(True)
 
+    def _automatico(self):
+        self.btn_auto.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            resultado = subprocess.run(
+                ["pkexec", SCRIPT_SISTEMA, getpass.getuser()],
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+        except Exception as exc:
+            self._mostrar_estado(f"Não foi possível executar a configuração: {exc}", False)
+            return
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.btn_auto.setEnabled(True)
+
+        if resultado.returncode == 0:
+            ok, mensagem = test_connection(load_config())
+            if ok:
+                self._mostrar_estado("Base de dados configurada. A abrir o programa…", True)
+                self.accept()
+            else:
+                self._mostrar_estado(mensagem, False)
+            return
+
+        detalhe = (resultado.stderr or resultado.stdout or "").strip().splitlines()
+        motivo = detalhe[-1] if detalhe else f"código {resultado.returncode}"
+        self._mostrar_estado(f"A configuração automática falhou: {motivo}", False)
+        self.chk_manual.setChecked(True)
+
     def _testar(self):
         ok, mensagem = test_connection(self._recolher())
         self._mostrar_estado(mensagem, ok)
@@ -182,11 +260,10 @@ class DialogoBaseDados(QDialog):
         try:
             ok, mensagem = test_connection(cfg)
             if not ok:
-                # A base de dados pode ainda não existir: tenta criá-la com estas credenciais.
                 try:
                     criar_base_dados(cfg)
                     ok, mensagem = test_connection(cfg)
-                except Exception as exc:  # credenciais erradas, servidor em baixo, etc.
+                except Exception as exc:
                     self._mostrar_estado(descrever_erro(exc), False)
                     return
         finally:

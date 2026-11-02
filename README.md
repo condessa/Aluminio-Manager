@@ -1,4 +1,4 @@
-# ⚙️ Aluminios Manager v1.2.0
+# ⚙️ Aluminios Manager v1.2.1
 **by HCsoftware**
 
 Sistema de gestão completo para oficinas de alumínio e caixilharia.
@@ -46,12 +46,13 @@ Sistema de gestão completo para oficinas de alumínio e caixilharia.
 
 ### Passos
 ```bash
-sudo dpkg -i aluminio-manager_1.2.0_amd64.deb
+sudo dpkg -i aluminio-manager_1.2.1_amd64.deb
 ```
 
 A base de dados e o utilizador MySQL são criados durante a instalação. Se a ligação
-falhar (por exemplo, num sistema onde o `mysql` root não está acessível), o programa
-abre um assistente para indicar os dados de ligação, com os comandos SQL prontos a copiar.
+falhar, o programa mostra um botão **«Configurar automaticamente»** — pede a palavra-passe
+do sistema, cria tudo e guarda a configuração, sem terminal. Os dados também podem ser
+introduzidos à mão, e há comandos SQL prontos a copiar para administradores.
 
 Na primeira execução será apresentado um assistente de configuração para:
 1. Definir os dados da empresa
@@ -70,7 +71,7 @@ aluminio-manager
 | Plataforma | Ficheiro |
 |------------|---------|
 | **Windows 10/11** | [AluminioManager_Setup_v1.1.0.exe](https://github.com/condessa/Aluminio-Manager/releases/download/v1.1.0/AluminioManager_Setup_v1.1.0.exe) |
-| **Debian/Ubuntu** | [aluminio-manager_1.2.0_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.2.0/aluminio-manager_1.2.0_amd64.deb) |
+| **Debian/Ubuntu** | [aluminio-manager_1.2.1_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.2.1/aluminio-manager_1.2.1_amd64.deb) |
 
 ---
 

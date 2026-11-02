@@ -62,12 +62,12 @@ class ErrosTest(unittest.TestCase):
     def test_servidor_em_baixo(self):
         texto = bd.descrever_erro(ErroFalso(2003))
         self.assertIn("contactar o servidor", texto)
-        self.assertIn("systemctl", texto)
+        self.assertIn("Configurar automaticamente", texto)
 
     def test_credenciais_recusadas(self):
         texto = bd.descrever_erro(ErroFalso(1045))
         self.assertIn("recusou", texto)
-        self.assertIn("comandos", texto)
+        self.assertIn("Configurar automaticamente", texto)
 
     def test_base_de_dados_inexistente(self):
         self.assertIn("não existe", bd.descrever_erro(ErroFalso(1049)))

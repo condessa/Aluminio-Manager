@@ -71,15 +71,15 @@ def descrever_erro(erro):
         codigo = getattr(primeiro, "errno", None)
     if codigo in (2002, 2003, 2005):
         return ("Não foi possível contactar o servidor MySQL/MariaDB.\n\n"
-                "Confirma que está instalado e a correr:\n"
-                "    sudo systemctl start mariadb")
+                "Clica em «Configurar automaticamente» — o programa tenta iniciar "
+                "o serviço. Se continuar, instala o MariaDB e volta a tentar.")
     if codigo == 1045:
         return ("O servidor respondeu, mas recusou o utilizador ou a palavra-passe.\n\n"
-                "Se é a primeira instalação, cria a base de dados e o utilizador com os "
-                "comandos do botão «Copiar comandos SQL».")
+                "Clica em «Configurar automaticamente» para criar a base de dados e o "
+                "utilizador — só precisas da palavra-passe do sistema.")
     if codigo == 1049:
         return ("O servidor está acessível, mas a base de dados ainda não existe.\n\n"
-                "Usa «Copiar comandos SQL» para a criar.")
+                "Clica em «Configurar automaticamente» para a criar.")
     if codigo == 1044:
         return "O utilizador existe, mas não tem permissões sobre essa base de dados."
     return str(erro)
