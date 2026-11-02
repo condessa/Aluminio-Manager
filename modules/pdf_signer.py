@@ -8,7 +8,14 @@ from pyhanko.sign.signers.pdf_signer import PdfSignatureMetadata
 from pyhanko_certvalidator import CertificateValidator
 import io
 
-CERT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cert", "empresa.p12")
+def _caminho_certificado():
+    from db.database import pasta_certificado
+    novo = os.path.join(str(pasta_certificado()), "empresa.p12")
+    antigo = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cert", "empresa.p12")
+    return novo if os.path.exists(novo) or not os.path.exists(antigo) else antigo
+
+
+CERT_PATH = _caminho_certificado()
 CERT_PASS = b"aluminio2026"
 
 

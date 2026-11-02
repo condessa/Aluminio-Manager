@@ -69,7 +69,8 @@ def gerar_certificado(nome_emp, email_emp):
             name=nome_emp.encode(),
             key=key, cert=cert, cas=None,
             encryption_algorithm=serialization.BestAvailableEncryption(b"aluminio2026"))
-        cert_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cert", "empresa.p12")
+        from db.database import pasta_certificado
+        cert_path = os.path.join(str(pasta_certificado()), "empresa.p12")
         os.makedirs(os.path.dirname(cert_path), exist_ok=True)
         with open(cert_path, "wb") as f: f.write(p12)
         print(f"[CERT] Certificado gerado para: {nome_emp}")

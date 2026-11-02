@@ -63,6 +63,13 @@ def save_config(cfg):
     return destino
 
 
+def pasta_certificado():
+    """Pasta persistente para o certificado da empresa."""
+    pasta = caminho_config().parent / "cert"
+    pasta.mkdir(parents=True, exist_ok=True)
+    return pasta
+
+
 def descrever_erro(erro):
     """Transforma o erro do conector numa explicação útil para o utilizador."""
     codigo = getattr(erro, "errno", None)
