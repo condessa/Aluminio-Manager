@@ -34,8 +34,10 @@ jobs:
         run: |
           PACOTE="dist/aluminio-manager_${{ steps.versao.outputs.valor }}_amd64.deb"
           test -f "$PACOTE"
-          test -d "/tmp/aluminio-manager_${{ steps.versao.outputs.valor }}/usr/share/aluminio-manager/lib/PyQt6"
           dpkg-deb -I "$PACOTE" | head -20
+          dpkg-deb -c "$PACOTE" | grep -q "usr/share/aluminio-manager/configurar_bd.sh"
+          rm -rf /tmp/ctrl && dpkg-deb -e "$PACOTE" /tmp/ctrl
+          bash -n /tmp/ctrl/postinst
           sha256sum "$PACOTE"
 
       - name: Publicar release
