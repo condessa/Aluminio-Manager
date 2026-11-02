@@ -1,2 +1,9 @@
-PyQt6>=6.4.0
-mysql-connector-python>=8.0.33
+PyQt6
+mysql-connector-python
+cryptography
+Pillow
+pyhanko
+openpyxl
+python-dateutil
+matplotlib
+reportlab

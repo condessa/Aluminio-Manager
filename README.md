@@ -1,4 +1,4 @@
-# ⚙️ Aluminios Manager v1.2.3
+# ⚙️ Aluminios Manager v1.3.0
 **by HCsoftware**
 
 Sistema de gestão completo para oficinas de alumínio e caixilharia.
@@ -46,8 +46,11 @@ Sistema de gestão completo para oficinas de alumínio e caixilharia.
 
 ### Passos
 ```bash
-sudo dpkg -i aluminio-manager_1.2.3_amd64.deb
+sudo dpkg -i aluminio-manager_1.3.0_amd64.deb
 ```
+
+Na primeira instalação, as bibliotecas Python são descarregadas para a versão de Python
+do sistema (é preciso ligação à Internet; demora alguns minutos).
 
 A base de dados e o utilizador MySQL são criados durante a instalação. Se a ligação
 falhar, o programa mostra um botão **«Configurar automaticamente»** — pede a palavra-passe
@@ -71,7 +74,7 @@ aluminio-manager
 | Plataforma | Ficheiro |
 |------------|---------|
 | **Windows 10/11** | [AluminioManager_Setup_v1.1.0.exe](https://github.com/condessa/Aluminio-Manager/releases/download/v1.1.0/AluminioManager_Setup_v1.1.0.exe) |
-| **Debian/Ubuntu** | [aluminio-manager_1.2.3_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.2.3/aluminio-manager_1.2.3_amd64.deb) |
+| **Debian/Ubuntu** | [aluminio-manager_1.3.0_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.3.0/aluminio-manager_1.3.0_amd64.deb) |
 
 ---
 

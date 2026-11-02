@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.2.3}
+VERSION=${1:-1.3.0}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -42,27 +42,15 @@ if [ -d cert ]; then
     cp -r cert "$INSTALL_DIR/"
 fi
 
-# Instalar dependências Python no pacote
-echo "📦 A instalar dependências Python..."
-pip install --quiet --target="${INSTALL_DIR}/lib" \
-    mysql-connector-python \
-    pyhanko \
-    pyhanko-certvalidator \
-    Pillow \
-    cryptography \
-    PyQt6 \
-    PyQt6-Qt6 \
-    PyQt6-sip \
-    openpyxl \
-    python-dateutil \
-    matplotlib \
-    reportlab 2>/dev/null || true
+# As dependências Python são instaladas no pós-instalação, com a versão
+# de Python do sistema (evita binários incompatíveis).
 
 # Script de arranque
 cat > "${BIN_DIR}/aluminio-manager" << 'EOF'
 #!/bin/bash
 cd /usr/share/aluminio-manager
-export PYTHONPATH="/usr/share/aluminio-manager/lib:$PYTHONPATH"
+PYVER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
+export PYTHONPATH="/usr/share/aluminio-manager/lib/${PYVER}${PYTHONPATH:+:$PYTHONPATH}"
 python3 main.py "$@"
 EOF
 chmod +x "${BIN_DIR}/aluminio-manager"
@@ -87,14 +75,15 @@ EOF
 cat > "${DEBIAN_DIR}/postinst" << 'EOF'
 #!/bin/bash
 set -e
-# Instalar PyQt6 via apt se não existir
-if ! python3 -c "import PyQt6" 2>/dev/null; then
-    apt-get install -y python3-pyqt6 python3-pyqt6.qtprintsupport 2>/dev/null || \
-    pip3 install PyQt6 --break-system-packages 2>/dev/null || true
+# Dependências Python instaladas para a versão de Python do sistema.
+PYVER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo "")"
+LIB="/usr/share/aluminio-manager/lib/${PYVER}"
+if [ -n "$PYVER" ] && ! PYTHONPATH="$LIB" python3 -c "import PyQt6, numpy, matplotlib, mysql.connector, cryptography, reportlab, openpyxl, dateutil, pyhanko" >/dev/null 2>&1; then
+    echo "   A instalar dependências Python (${PYVER}) — só na primeira vez…"
+    python3 -m pip install --quiet --upgrade --target "$LIB" \
+        -r /usr/share/aluminio-manager/requirements.txt || \
+        echo "   AVISO: falha ao instalar dependências. Verifique a Internet e execute: sudo python3 -m pip install --target $LIB -r /usr/share/aluminio-manager/requirements.txt"
 fi
-# Instalar dependências Python
-pip3 install --quiet --break-system-packages \
-    mysql-connector-python pyhanko pyhanko-certvalidator Pillow cryptography openpyxl python-dateutil matplotlib reportlab 2>/dev/null || true
 
 # Criar directório de config
 mkdir -p /etc/aluminio-manager
