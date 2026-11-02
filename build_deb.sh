@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.4.1}
+VERSION=${1:-1.5.0}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -23,6 +23,7 @@ mkdir -p "$ICONS_DIR/512x512/apps"
 cp main.py version.py requirements.txt "$INSTALL_DIR/"
 cp packaging/configurar_bd.sh "$INSTALL_DIR/"
 if [ -d wheels ]; then cp -r wheels "$INSTALL_DIR/wheels"; fi
+if [ -f credentials.json ]; then cp credentials.json "$INSTALL_DIR/"; fi
 chmod 755 "$INSTALL_DIR/configurar_bd.sh"
 cp -r db modules "$INSTALL_DIR/"
 

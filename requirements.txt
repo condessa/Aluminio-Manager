@@ -7,3 +7,6 @@ openpyxl
 python-dateutil
 matplotlib
 reportlab
+google-auth
+google-auth-oauthlib
+google-api-python-client

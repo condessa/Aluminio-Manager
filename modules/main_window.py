@@ -314,13 +314,8 @@ class MainWindow(QMainWindow):
         m_ajuda.addSeparator(); m_ajuda.addAction(a_sobre)
 
     def _ajuda_email(self):
-        self._mostrar_ajuda("📧  Envio de Email", """
-<h2 style='color:#d4560a;'>Envio de Email</h2>
-<p>Os orçamentos são enviados automaticamente por email ao cliente através da conta da aplicação.</p>
-<p>✅ <b>Não é necessária qualquer configuração</b> — o envio está pronto a usar.</p>
-<p>Basta que o cliente tenha o email registado na sua ficha e clicar em <b>Ações → Enviar Orçamento</b>.</p>
-<p style='color:#6b7c8e;font-size:11px;margin-top:16px;'>Para suporte contacte: condessasilva@gmail.com</p>
-""")
+        from modules.email_setup import DialogoEmail
+        DialogoEmail(self).exec()
 
     def _ajuda_perfis(self):
         self._mostrar_ajuda("👥  Perfis de Utilizador", """

@@ -1,4 +1,4 @@
-# ⚙️ Aluminios Manager v1.4.1
+# ⚙️ Aluminios Manager v1.5.0
 **by HCsoftware**
 
 Sistema de gestão completo para oficinas de alumínio e caixilharia.
@@ -46,7 +46,7 @@ Sistema de gestão completo para oficinas de alumínio e caixilharia.
 
 ### Passos
 ```bash
-sudo dpkg -i aluminio-manager_1.4.1_amd64.deb
+sudo dpkg -i aluminio-manager_1.5.0_amd64.deb
 ```
 
 O pacote inclui as bibliotecas Python para as versões 3.10 a 3.13, por isso a instalação
@@ -74,7 +74,7 @@ aluminio-manager
 | Plataforma | Ficheiro |
 |------------|---------|
 | **Windows 10/11** | [AluminioManager_Setup_v1.1.0.exe](https://github.com/condessa/Aluminio-Manager/releases/download/v1.1.0/AluminioManager_Setup_v1.1.0.exe) |
-| **Debian/Ubuntu** | [aluminio-manager_1.4.1_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.4.1/aluminio-manager_1.4.1_amd64.deb) |
+| **Debian/Ubuntu** | [aluminio-manager_1.5.0_amd64.deb](https://github.com/condessa/Aluminio-Manager/releases/download/v1.5.0/aluminio-manager_1.5.0_amd64.deb) |
 
 ---
 
@@ -88,6 +88,20 @@ aluminio-manager
 | **Vendas** | Obras, Clientes, Tarefas |
 
 ---
+
+## 📧 Enviar pela conta Google da oficina (OAuth)
+
+Por omissão, os orçamentos saem pela conta da aplicação. Para usarem o email da oficina:
+
+1. Criar um projeto em <https://console.cloud.google.com> e ativar a **Gmail API**.
+2. No **OAuth consent screen**, escolher *External*, modo *Testing*, e acrescentar o email da
+   oficina como *test user*.
+3. Em **Credentials → Create credentials → OAuth client ID → Desktop app**, descarregar o JSON
+   e guardá-lo como `credentials.json` na pasta do programa (o `build_deb.sh` inclui-o no pacote).
+4. Na aplicação: **Ajuda → Como configurar o Email → Ligar conta Google da oficina**.
+
+Enquanto a aplicação estiver em modo *Testing*, a autorização expira ao fim de 7 dias (limite
+da Google). Para uso permanente é preciso publicar/verificar a aplicação na Google.
 
 ## 🔑 Licença
 

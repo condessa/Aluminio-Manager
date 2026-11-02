@@ -43,7 +43,19 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
     descricao = obra.get("descricao","")
     valor     = float(obra.get("valor_orcamento",0) or 0)
 
-    smtp_user, smtp_pass = _credenciais()
+    # Conta da oficina (OAuth) tem prioridade; senão usa-se a conta da aplicação.
+    try:
+        from modules import gmail_oauth
+        usar_oauth = gmail_oauth.configurado() and gmail_oauth.bibliotecas_instaladas()
+    except Exception:
+        gmail_oauth = None
+        usar_oauth = False
+
+    if usar_oauth:
+        smtp_user = gmail_oauth.conta() or oficina.get("email", "")
+        smtp_pass = None
+    else:
+        smtp_user, smtp_pass = _credenciais()
 
     # Gerar PDF
     try:
@@ -100,9 +112,12 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
     msg.attach(pdf_part)
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
-            s.login(smtp_user, smtp_pass)
-            s.send_message(msg)
+        if usar_oauth:
+            gmail_oauth.enviar_mensagem(msg)
+        else:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
+                s.login(smtp_user, smtp_pass)
+                s.send_message(msg)
         print(f"[EMAIL] Orçamento enviado para {email_cli}")
     except smtplib.SMTPAuthenticationError as e:
         raise ValueError("Falha na autenticação do email. Contacte o suporte.") from e

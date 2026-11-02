@@ -40,3 +40,9 @@ files.zip
 
 # Wheels para instalação offline
 wheels/
+
+# OAuth
+credentials.json
+
+# OAuth
+gmail_token.json

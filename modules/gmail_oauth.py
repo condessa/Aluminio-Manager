@@ -1,170 +1,129 @@
-import os
-import json
+"""Envio de email pela conta Google da oficina (OAuth 2.0).
+
+O utilizador liga a conta uma vez, no browser, e o programa guarda um token
+local. A partir daí os orçamentos saem do email da oficina, sem palavras-passe
+nem configuração de SMTP.
+"""
+
 import base64
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
+import json
+import os
+from pathlib import Path
 
-CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "credentials.json")
-TOKEN_FILE       = os.path.expanduser("~/.config/aluminio-manager/gmail_token.json")
-SCOPES           = ["https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/userinfo.email", "openid"]
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "openid",
+]
 
-def _get_service():
-    """Obtém serviço Gmail autenticado via OAuth2."""
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
+CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config")) / "aluminio-manager"
+TOKEN_FILE = CONFIG_DIR / "gmail_token.json"
+INFO_FILE = CONFIG_DIR / "gmail_conta.json"
+CREDENCIAIS = Path(__file__).resolve().parent.parent / "credentials.json"
+
+
+def bibliotecas_instaladas():
+    """As bibliotecas Google só são precisas quando o OAuth é usado."""
+    try:
+        import google.oauth2.credentials  # noqa: F401
+        import google_auth_oauthlib.flow  # noqa: F401
+        import googleapiclient.discovery  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def disponivel():
+    """True se o pacote traz o cliente OAuth e as bibliotecas necessárias."""
+    return CREDENCIAIS.exists() and bibliotecas_instaladas()
+
+
+def configurado():
+    return TOKEN_FILE.exists()
+
+
+def conta():
+    """Email da conta Google ligada (ou vazio)."""
+    try:
+        return json.loads(INFO_FILE.read_text(encoding="utf-8")).get("email", "")
+    except Exception:
+        return ""
+
+
+def _guardar(creds):
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
+    os.chmod(TOKEN_FILE, 0o600)
+
+
+def _credenciais():
+    if not TOKEN_FILE.exists():
+        return None
     from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+
+    try:
+        creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            _guardar(creds)
+        return creds if creds and creds.valid else None
+    except Exception:
+        return None
+
+
+def _obter_email(creds):
+    try:
+        import urllib.request
+
+        pedido = urllib.request.Request(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": "Bearer " + creds.token},
+        )
+        with urllib.request.urlopen(pedido, timeout=10) as resposta:
+            return json.loads(resposta.read()).get("email", "")
+    except Exception:
+        return ""
+
+
+def autorizar():
+    """Abre o browser para a oficina autorizar a sua conta Google."""
+    if not disponivel():
+        raise RuntimeError(
+            "O cliente OAuth não está incluído neste pacote (credentials.json) "
+            "ou faltam as bibliotecas Google."
+        )
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    flow = InstalledAppFlow.from_client_secrets_file(str(CREDENCIAIS), SCOPES)
+    creds = flow.run_local_server(
+        port=0,
+        prompt="consent",
+        authorization_prompt_message="",
+        success_message="Conta ligada ao AluminioManager. Pode fechar esta janela.",
+    )
+    _guardar(creds)
+    email = _obter_email(creds)
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    INFO_FILE.write_text(json.dumps({"email": email}), encoding="utf-8")
+    return email
+
+
+def desligar():
+    for ficheiro in (TOKEN_FILE, INFO_FILE):
+        try:
+            ficheiro.unlink()
+        except OSError:
+            pass
+
+
+def enviar_mensagem(msg):
+    """Envia uma mensagem MIME pela Gmail API, com a conta ligada."""
+    creds = _credenciais()
+    if creds is None:
+        raise RuntimeError("A conta Google da oficina não está ligada.")
     from googleapiclient.discovery import build
 
-    creds = None
-
-    # Carregar token existente
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-
-    # Se não há token válido, fazer login
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            # Abrir browser em modo incógnito para não mostrar contas do programador
-        import webbrowser, subprocess, sys
-
-        # Gerar URL de autorização
-        flow.redirect_uri = "http://localhost:0"
-        auth_url, _ = flow.authorization_url(
-            access_type="offline",
-            login_hint=email_hint or "",
-            prompt="select_account"
-        )
-
-        creds = flow.run_local_server(
-            port=0,
-            authorization_prompt_message="",
-            open_browser=False,
-            extra_authorize_kwargs={"login_hint": email_hint or "", "prompt": "select_account"}
-        )
-
-        # Guardar token para próxima vez
-        os.makedirs(os.path.dirname(TOKEN_FILE), exist_ok=True)
-        with open(TOKEN_FILE, "w") as f:
-            f.write(creds.to_json())
-
-    return build("gmail", "v1", credentials=creds)
-
-def gmail_configurado():
-    """Retorna True se já existe token OAuth2 válido."""
-    if not os.path.exists(TOKEN_FILE):
-        return False
-    try:
-        from google.oauth2.credentials import Credentials
-        from google.auth.transport.requests import Request
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        if creds and creds.valid:
-            return True
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            with open(TOKEN_FILE, "w") as f:
-                f.write(creds.to_json())
-            return True
-    except:
-        pass
-    return False
-
-def ligar_gmail(email_hint=None):
-    """Abre browser para autorizar acesso ao Gmail. Retorna email autorizado."""
-    try:
-        from google.oauth2.credentials import Credentials
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        from google.auth.transport.requests import Request
-        import json
-
-        flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-        # Abrir browser em modo incógnito para não mostrar contas do programador
-        import webbrowser, subprocess, sys
-
-        # Gerar URL de autorização
-        flow.redirect_uri = "http://localhost:0"
-        auth_url, _ = flow.authorization_url(
-            access_type="offline",
-            login_hint=email_hint or "",
-            prompt="select_account"
-        )
-
-        creds = flow.run_local_server(
-            port=0,
-            authorization_prompt_message="",
-            open_browser=False,
-            extra_authorize_kwargs={"login_hint": email_hint or "", "prompt": "select_account"}
-        )
-
-        os.makedirs(os.path.dirname(TOKEN_FILE), exist_ok=True)
-        with open(TOKEN_FILE, "w") as f:
-            f.write(creds.to_json())
-
-        # Obter email do token
-        token_data = json.loads(creds.to_json())
-        email = token_data.get("id_token", {})
-        # Tentar via userinfo
-        import urllib.request, urllib.parse
-        req = urllib.request.Request(
-            "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
-            headers={"Authorization": f"Bearer {creds.token}"}
-        )
-        with urllib.request.urlopen(req) as r:
-            info = json.loads(r.read())
-        return True, info.get("email", "")
-    except Exception as e:
-        return False, str(e)
-
-def desligar_gmail():
-    """Remove token OAuth2."""
-    if os.path.exists(TOKEN_FILE):
-        os.remove(TOKEN_FILE)
-
-def enviar_email(para, assunto, corpo_html=None, corpo_texto=None, anexo_path=None):
-    """
-    Envia email via Gmail OAuth2.
-    Retorna (True, "") ou (False, mensagem_erro)
-    """
-    try:
-        service = _get_service()
-
-        msg = MIMEMultipart("alternative")
-        msg["To"]      = para
-        msg["Subject"] = assunto
-
-        if corpo_texto:
-            msg.attach(MIMEText(corpo_texto, "plain", "utf-8"))
-        if corpo_html:
-            msg.attach(MIMEText(corpo_html, "html", "utf-8"))
-
-        # Anexo opcional (ex: PDF do orçamento)
-        if anexo_path and os.path.exists(anexo_path):
-            with open(anexo_path, "rb") as f:
-                parte = MIMEBase("application", "octet-stream")
-                parte.set_payload(f.read())
-            encoders.encode_base64(parte)
-            nome_ficheiro = os.path.basename(anexo_path)
-            parte.add_header("Content-Disposition", f"attachment; filename={nome_ficheiro}")
-            msg.attach(parte)
-
-        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-        service.users().messages().send(userId="me", body={"raw": raw}).execute()
-        return True, ""
-
-    except Exception as e:
-        return False, str(e)
-
-def get_email_configurado():
-    """Retorna o email Gmail ligado ou None."""
-    try:
-        if not gmail_configurado():
-            return None
-        service = _get_service()
-        perfil  = service.users().getProfile(userId="me").execute()
-        return perfil.get("emailAddress")
-    except:
-        return None
+    bruto = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    servico = build("gmail", "v1", credentials=creds, cache_discovery=False)
+    servico.users().messages().send(userId="me", body={"raw": bruto}).execute()
