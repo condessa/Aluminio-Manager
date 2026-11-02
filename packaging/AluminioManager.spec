@@ -2,6 +2,9 @@
 import os
 from PyInstaller.utils.hooks import collect_all
 
+BASE = os.path.abspath(SPECPATH)
+ROOT = os.path.dirname(BASE)
+
 datas, binaries, hiddenimports = [], [], []
 for pacote in ("pyhanko", "pyhanko_certvalidator", "matplotlib"):
     try:
@@ -12,12 +15,12 @@ for pacote in ("pyhanko", "pyhanko_certvalidator", "matplotlib"):
     except Exception:
         pass
 
-if os.path.exists("credentials.json"):
-    datas.append(("credentials.json", "."))
+if os.path.exists(os.path.join(ROOT, "credentials.json")):
+    datas.append((os.path.join(ROOT, "credentials.json"), "."))
 
 a = Analysis(
-    ["main.py"],
-    pathex=[],
+    [os.path.join(ROOT, "main.py")],
+    pathex=[ROOT],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -40,5 +43,5 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
-    icon="packaging/aluminio.ico",
+    icon=os.path.join(BASE, "aluminio.ico"),
 )
