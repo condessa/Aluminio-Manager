@@ -45,7 +45,7 @@ jobs:
           PACOTE="dist/aluminio-manager_${{ steps.versao.outputs.valor }}_amd64.deb"
           test -f "$PACOTE"
           dpkg-deb -I "$PACOTE" | head -20
-          dpkg-deb -c "$PACOTE" | grep -q "usr/share/aluminio-manager/configurar_bd.sh"
+          dpkg-deb -c "$PACOTE" | grep -q "usr/share/aluminio-manager/main.py"
           test -d "/tmp/aluminio-manager_${{ steps.versao.outputs.valor }}/usr/share/aluminio-manager/wheels"
           rm -rf /tmp/ctrl && dpkg-deb -e "$PACOTE" /tmp/ctrl
           bash -n /tmp/ctrl/postinst
