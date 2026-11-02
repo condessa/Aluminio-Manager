@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.2.2}
+VERSION=${1:-1.2.3}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -116,7 +116,7 @@ fi
 echo ""
 echo "✅ AluminioManager instalado com sucesso!"
 echo "   Execute: aluminio-manager"
-echo "   Login inicial: admin / admin123"
+echo "   Crie a conta de administrador no primeiro arranque."
 EOF
 chmod 755 "${DEBIAN_DIR}/postinst"
 
@@ -154,4 +154,4 @@ dpkg-deb --root-owner-group --build "$BUILD_DIR" "dist/${APP}_${VERSION}_amd64.d
 echo ""
 echo "✅ Pacote criado: dist/${APP}_${VERSION}_amd64.deb"
 echo "   Para instalar: sudo dpkg -i dist/${APP}_${VERSION}_amd64.deb"
-echo "   Login inicial: admin / admin123"
+echo "   Crie a conta de administrador no primeiro arranque."

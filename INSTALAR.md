@@ -37,11 +37,9 @@ python main.py
 ```
 Na primeira execução, o programa cria automaticamente a base de dados e todas as tabelas.
 
-## 6. Login inicial
-- Utilizador: **admin**
-- Palavra-passe: **admin123**
-
-⚠️ Altere a palavra-passe após o primeiro login!
+## 6. Primeira execução
+O programa não traz contas pré-definidas. Ao abrir pela primeira vez, pede os dados da
+empresa e a conta de administrador que quiseres criar.
 
 ---
 

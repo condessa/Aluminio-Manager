@@ -120,6 +120,19 @@ def _verificar_aniversarios(parent):
         print(f"[Aniversários] Erro: {e}")
 
 
+def _tem_utilizadores():
+    """True se já existe pelo menos uma conta; False numa instalação nova."""
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM utilizadores")
+        total = cur.fetchone()[0]
+        cur.close(); conn.close()
+        return total > 0
+    except Exception:
+        return True
+
+
 def _obter_utilizador(username):
     """Vai buscar o utilizador criado no assistente inicial."""
     try:
@@ -194,7 +207,9 @@ def main():
     from modules.configuracao import oficina_configurada, ConfiguracaoInicialDialog
     
     # Verificar se a oficina precisa de configuração
-    precisa_config = not oficina_configurada()
+    # Sem contas criadas, é sempre primeira utilização — mesmo que a base de
+    # dados já tenha dados da empresa de uma instalação anterior.
+    precisa_config = not oficina_configurada() or not _tem_utilizadores()
     utilizador_inicial = None
 
     if precisa_config:

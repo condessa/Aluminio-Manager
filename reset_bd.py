@@ -54,9 +54,7 @@ def reset_bd():
         conn.close()
         
         print("\n✅ Base de dados recriada com sucesso!")
-        print("\n📋 Utilizador padrão:")
-        print("   Username: admin")
-        print("   Password: admin123")
+        print("\nA conta de administrador é criada no primeiro arranque.")
         print("\n🚀 Agora executa: python main.py")
         
     except Exception as e:
