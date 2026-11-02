@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-1.5.6}
+VERSION=${1:-1.5.7}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"

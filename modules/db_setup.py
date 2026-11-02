@@ -5,7 +5,9 @@ numa instalação nova, onde a base de dados e o utilizador ainda não existem.
 """
 
 import getpass
+import glob
 import os
+import secrets
 import shutil
 import subprocess
 
@@ -47,11 +49,13 @@ class DialogoBaseDados(QDialog):
         self.setWindowTitle("Configurar base de dados")
         self.setMinimumWidth(600)
         self._cfg = load_config()
-        self._automatico_disponivel = (
-            os.name == "posix"
-            and shutil.which("pkexec") is not None
-            and os.path.isfile(SCRIPT_SISTEMA)
-        )
+        if os.name == "nt":
+            self._automatico_disponivel = True
+        else:
+            self._automatico_disponivel = (
+                shutil.which("pkexec") is not None
+                and os.path.isfile(SCRIPT_SISTEMA)
+            )
         self._construir(erro)
 
     # ── construção ────────────────────────────────────────────────────────
@@ -82,10 +86,13 @@ class DialogoBaseDados(QDialog):
         self.btn_auto.setVisible(self._automatico_disponivel)
         exterior.addWidget(self.btn_auto)
 
-        self.lbl_dica = QLabel(
-            "Pede a palavra-passe do sistema, cria a base de dados e guarda a "
-            "configuração. Não é preciso terminal nem conhecimentos de SQL."
-        )
+        if os.name == "nt":
+            texto_dica = ("Procura o MySQL/MariaDB (XAMPP) e cria a base de dados como root. "
+                          "Não é preciso terminal nem conhecimentos de SQL.")
+        else:
+            texto_dica = ("Pede a palavra-passe do sistema, cria a base de dados e guarda a "
+                          "configuração. Não é preciso terminal nem conhecimentos de SQL.")
+        self.lbl_dica = QLabel(texto_dica)
         self.lbl_dica.setWordWrap(True)
         self.lbl_dica.setStyleSheet("color:#5b6b7a; font-size:12px;")
         self.lbl_dica.setVisible(self._automatico_disponivel)
@@ -213,6 +220,9 @@ class DialogoBaseDados(QDialog):
         self.lbl_estado.setVisible(True)
 
     def _automatico(self):
+        if os.name == "nt":
+            self._automatico_windows()
+            return
         self.btn_auto.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
@@ -242,6 +252,77 @@ class DialogoBaseDados(QDialog):
         motivo = detalhe[-1] if detalhe else f"código {resultado.returncode}"
         self._mostrar_estado(f"A configuração automática falhou: {motivo}", False)
         self.chk_manual.setChecked(True)
+
+    def _mysql_windows(self):
+        candidatos = [shutil.which("mysql"), r"C:\xampp\mysql\bin\mysql.exe"]
+        for padrao in (
+            r"C:\Program Files\MariaDB*\bin\mysql.exe",
+            r"C:\Program Files\MySQL\MySQL Server*\bin\mysql.exe",
+            r"C:\Program Files (x86)\MariaDB*\bin\mysql.exe",
+            r"C:\wamp64\bin\mysql\*\bin\mysql.exe",
+        ):
+            candidatos.extend(glob.glob(padrao))
+        for caminho in candidatos:
+            if caminho and os.path.isfile(caminho):
+                return caminho
+        return None
+
+    def _automatico_windows(self):
+        from modules import registo
+
+        mysql = self._mysql_windows()
+        if not mysql:
+            self._mostrar_estado(
+                "Não encontrei o mysql.exe. Instale o XAMPP/MariaDB ou preencha os dados "
+                "manualmente.", False)
+            self.chk_manual.setChecked(True)
+            return
+
+        senha = secrets.token_urlsafe(24).replace("-", "").replace("_", "")[:24]
+        sql = (
+            "CREATE DATABASE IF NOT EXISTS aluminio_manager CHARACTER SET utf8mb4 "
+            "COLLATE utf8mb4_unicode_ci;"
+            "CREATE USER IF NOT EXISTS 'aluminio_user'@'localhost' IDENTIFIED BY "
+            f"'{senha}';"
+            f"ALTER USER 'aluminio_user'@'localhost' IDENTIFIED BY '{senha}';"
+            "GRANT ALL PRIVILEGES ON aluminio_manager.* TO 'aluminio_user'@'localhost';"
+            "FLUSH PRIVILEGES;"
+        )
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            resultado = subprocess.run(
+                [mysql, "-u", "root", "-e", sql],
+                capture_output=True, text=True, timeout=90)
+        except Exception as exc:
+            QApplication.restoreOverrideCursor()
+            registo.registar_excecao()
+            self._mostrar_estado(f"Erro ao executar o MySQL: {exc}", False)
+            self.chk_manual.setChecked(True)
+            return
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        if resultado.returncode != 0:
+            detalhe = (resultado.stderr or resultado.stdout or "").strip().splitlines()
+            motivo = detalhe[-1] if detalhe else f"código {resultado.returncode}"
+            registo.registar(f"Configuração automática Windows falhou: {motivo}")
+            self._mostrar_estado(
+                "Não foi possível criar a base de dados como root. " + motivo[:200], False)
+            self.chk_manual.setChecked(True)
+            return
+
+        cfg = {"host": "localhost", "port": 3306, "database": "aluminio_manager",
+               "user": "aluminio_user", "password": senha}
+        ok, mensagem = test_connection(cfg)
+        if not ok:
+            self._mostrar_estado(mensagem, False)
+            self.chk_manual.setChecked(True)
+            return
+
+        save_config(cfg)
+        registo.registar("Base de dados configurada automaticamente (Windows)")
+        self._mostrar_estado("Base de dados configurada. A abrir o programa…", True)
+        self.accept()
 
     def _testar(self):
         ok, mensagem = test_connection(self._recolher())
