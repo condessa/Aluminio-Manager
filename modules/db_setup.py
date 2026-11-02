@@ -9,6 +9,7 @@ import glob
 import os
 import secrets
 import shutil
+import string
 import subprocess
 
 from PyQt6.QtCore import Qt
@@ -16,6 +17,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
     QDialog,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -85,6 +87,11 @@ class DialogoBaseDados(QDialog):
         self.btn_auto.clicked.connect(self._automatico)
         self.btn_auto.setVisible(self._automatico_disponivel)
         exterior.addWidget(self.btn_auto)
+
+        self.btn_mysql = QPushButton("Escolher o mysql.exe…")
+        self.btn_mysql.clicked.connect(self._escolher_mysql)
+        self.btn_mysql.setVisible(os.name == "nt")
+        exterior.addWidget(self.btn_mysql)
 
         if os.name == "nt":
             texto_dica = ("Procura o MySQL/MariaDB (XAMPP) e cria a base de dados como root. "
@@ -253,19 +260,62 @@ class DialogoBaseDados(QDialog):
         self._mostrar_estado(f"A configuração automática falhou: {motivo}", False)
         self.chk_manual.setChecked(True)
 
+    def _ficheiro_mysql(self):
+        from db.database import caminho_config
+        return caminho_config().parent / "mysql_path.txt"
+
+    def _ler_mysql_guardado(self):
+        try:
+            caminho = self._ficheiro_mysql().read_text(encoding="utf-8").strip()
+            return caminho if os.path.isfile(caminho) else None
+        except Exception:
+            return None
+
+    def _guardar_mysql(self, caminho):
+        try:
+            self._ficheiro_mysql().parent.mkdir(parents=True, exist_ok=True)
+            self._ficheiro_mysql().write_text(caminho, encoding="utf-8")
+        except Exception:
+            pass
+
     def _mysql_windows(self):
-        candidatos = [shutil.which("mysql"), r"C:\xampp\mysql\bin\mysql.exe"]
-        for padrao in (
-            r"C:\Program Files\MariaDB*\bin\mysql.exe",
-            r"C:\Program Files\MySQL\MySQL Server*\bin\mysql.exe",
-            r"C:\Program Files (x86)\MariaDB*\bin\mysql.exe",
-            r"C:\wamp64\bin\mysql\*\bin\mysql.exe",
-        ):
-            candidatos.extend(glob.glob(padrao))
+        guardado = self._ler_mysql_guardado()
+        if guardado:
+            return guardado
+
+        candidatos = [shutil.which("mysql")]
+        for letra in string.ascii_uppercase:
+            base = f"{letra}:\\"
+            if not os.path.isdir(base):
+                continue
+            candidatos.append(os.path.join(base, "xampp", "mysql", "bin", "mysql.exe"))
+            candidatos.append(os.path.join(base, "usr", "local", "mysql", "bin", "mysql.exe"))
+            for padrao in (
+                os.path.join(base, "wamp64", "bin", "mysql", "*", "bin", "mysql.exe"),
+                os.path.join(base, "wamp", "bin", "mysql", "*", "bin", "mysql.exe"),
+                os.path.join(base, "laragon", "bin", "mysql", "*", "bin", "mysql.exe"),
+                os.path.join(base, "Program Files", "MariaDB*", "bin", "mysql.exe"),
+                os.path.join(base, "Program Files", "MySQL", "MySQL Server*", "bin", "mysql.exe"),
+                os.path.join(base, "Program Files (x86)", "MariaDB*", "bin", "mysql.exe"),
+                os.path.join(base, "Program Files (x86)", "MySQL", "MySQL Server*", "bin", "mysql.exe"),
+            ):
+                candidatos.extend(glob.glob(padrao))
+
         for caminho in candidatos:
             if caminho and os.path.isfile(caminho):
+                self._guardar_mysql(caminho)
                 return caminho
         return None
+
+    def _escolher_mysql(self):
+        inicio = r"C:\xampp\mysql\bin" if os.path.isdir(r"C:\xampp\mysql\bin") else ""
+        caminho, _ = QFileDialog.getOpenFileName(
+            self, "Selecione o mysql.exe", inicio,
+            "mysql.exe (mysql.exe);;Executáveis (*.exe)")
+        if not caminho:
+            return
+        self._guardar_mysql(caminho)
+        self._automatico_windows()
 
     def _automatico_windows(self):
         from modules import registo
@@ -273,8 +323,8 @@ class DialogoBaseDados(QDialog):
         mysql = self._mysql_windows()
         if not mysql:
             self._mostrar_estado(
-                "Não encontrei o mysql.exe. Instale o XAMPP/MariaDB ou preencha os dados "
-                "manualmente.", False)
+                "Não encontrei o mysql.exe. Clique em «Escolher o mysql.exe…» e indique "
+                "o ficheiro (normalmente C:\\xampp\\mysql\\bin\\mysql.exe).", False)
             self.chk_manual.setChecked(True)
             return
 
