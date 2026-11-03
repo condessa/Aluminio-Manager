@@ -148,7 +148,8 @@ class LoginDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.utilizador = None
-        self.setWindowTitle("AluminioManager — Login")
+        from version import VERSION as _versao
+        self.setWindowTitle(f"AluminioManager v{_versao} — Login")
         self.setFixedSize(360, 300)
         self._build()
 

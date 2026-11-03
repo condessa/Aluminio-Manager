@@ -23,7 +23,8 @@ class MainWindow(QMainWindow):
     def __init__(self, utilizador):
         super().__init__()
         self.utilizador = utilizador
-        self.setWindowTitle("Aluminios Manager by HCsoftware")
+        from version import VERSION as _versao_janela
+        self.setWindowTitle(f"Aluminios Manager v{_versao_janela} by HCsoftware")
         self.setMinimumSize(1200, 720)
         self.resize(1400, 820)
 
@@ -58,7 +59,8 @@ class MainWindow(QMainWindow):
 
         # Timer de inactividade — bloqueia após 5 minutos
         self._inact_segundos = 60
-        self._titulo_base = "Aluminios Manager by HCsoftware"
+        from version import VERSION as _versao_base
+        self._titulo_base = f"Aluminios Manager v{_versao_base} by HCsoftware"
         self._inact_timer = QTimer(self)
         self._inact_timer.setInterval(1000)
         self._inact_timer.timeout.connect(self._tick_inatividade)
