@@ -157,7 +157,14 @@ class LoginDialog(QDialog):
         lay.setContentsMargins(40, 36, 40, 36)
         lay.setSpacing(14)
 
-        titulo = QLabel("⚙️  AluminioManager")
+        from modules.marca import logo_tile
+        logo = QLabel()
+        logo.setPixmap(logo_tile(84))
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo.setStyleSheet("background:transparent;")
+        lay.addWidget(logo)
+
+        titulo = QLabel("AluminioManager")
         titulo.setStyleSheet("font-size:18px;font-weight:800;")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 

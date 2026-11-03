@@ -88,7 +88,15 @@ class MainWindow(QMainWindow):
         lay = QVBoxLayout(sb); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
         logo = QWidget(); logo.setStyleSheet("border-bottom:1px solid rgba(255,255,255,0.1);")
         ll = QVBoxLayout(logo); ll.setContentsMargins(16,18,16,14)
-        t = QLabel("⚙️  Aluminios Manager"); t.setStyleSheet("font-size:15px;font-weight:800;color:#e8edf2;")
+        from modules.marca import logo_wordmark
+        t = QLabel()
+        imagem = logo_wordmark(150)
+        if imagem.isNull():
+            t.setText("Aluminios Manager")
+            t.setStyleSheet("font-size:15px;font-weight:800;color:#e8edf2;")
+        else:
+            t.setPixmap(imagem)
+            t.setStyleSheet("background:transparent;")
         # Carregar nome da firma da BD
         nome_firma = "Gestão de Oficina"
         try:
@@ -389,10 +397,16 @@ e os orçamentos passam a sair desse email (OAuth), sem palavras-passe.</p>
 """)
 
     def _sobre(self):
+        from pathlib import Path
         from version import VERSION
+        from modules.marca import caminho as caminho_marca
+        ficheiro_logo = caminho_marca("hcsoftware.png")
+        logo_html = (f"<img src='file:///{ficheiro_logo}' width='88'/><br/>"
+                     if ficheiro_logo else "⚙️")
         self._mostrar_ajuda("ℹ️  Sobre", f"""
 <div style='text-align:center;padding:20px;'>
-<h1 style='color:#d4560a;font-size:24px;'>⚙️  Aluminios Manager</h1>
+{logo_html}
+<h1 style='color:#d4560a;font-size:24px;'>Aluminios Manager</h1>
 <p style='color:#6b7c8e;'>by HCsoftware</p>
 <p style='margin-top:16px;font-size:13px;'>Sistema de gestão completo para oficinas de alumínio e caixilharia.</p>
 <hr style='border:none;border-top:1px solid #e8edf2;margin:20px 0;'/>

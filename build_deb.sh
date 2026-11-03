@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION=${1:-2.0.2}
+VERSION=${1:-2.1.0}
 APP=aluminio-manager
 BUILD_DIR="/tmp/${APP}_${VERSION}"
 INSTALL_DIR="${BUILD_DIR}/usr/share/aluminio-manager"
@@ -21,6 +21,9 @@ mkdir -p "$ICONS_DIR/512x512/apps"
 
 # Copiar ficheiros da aplicação
 cp main.py version.py requirements.txt "$INSTALL_DIR/"
+for ficheiro in hcsoftware.png hcsoftware.ico hcsoftware-logo.png; do
+    [ -f "packaging/$ficheiro" ] && cp "packaging/$ficheiro" "$INSTALL_DIR/"
+done
 if [ -d wheels ]; then cp -r wheels "$INSTALL_DIR/wheels"; fi
 if [ -f credentials.json ]; then cp credentials.json "$INSTALL_DIR/"; fi
 cp -r db modules "$INSTALL_DIR/"

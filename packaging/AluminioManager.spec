@@ -19,6 +19,7 @@ if os.path.exists(os.path.join(ROOT, "credentials.json")):
     datas.append((os.path.join(ROOT, "credentials.json"), "."))
 datas.append((os.path.join(BASE, "hcsoftware.ico"), "."))
 datas.append((os.path.join(BASE, "hcsoftware.png"), "."))
+datas.append((os.path.join(BASE, "hcsoftware-logo.png"), "."))
 
 a = Analysis(
     [os.path.join(ROOT, "main.py")],

@@ -63,7 +63,10 @@ class DialogoEmail(QDialog):
         self._actualizar()
 
     def _actualizar(self):
-        if gmail_oauth.configurado():
+        disponivel = gmail_oauth.disponivel()
+        ligado = gmail_oauth.configurado()
+
+        if ligado:
             conta = gmail_oauth.conta() or "conta Google"
             self.lbl_estado.setText(
                 f"✔  Emails enviados pela conta da oficina: <b>{conta}</b>"
@@ -73,29 +76,27 @@ class DialogoEmail(QDialog):
             )
         else:
             self.lbl_estado.setText(
-                "Emails enviados pela conta da aplicação "
+                "✔  Emails enviados pela conta da aplicação "
                 "(aluminiomanager@gmail.com)."
             )
             self.lbl_estado.setStyleSheet(
                 "color:#8a5a06; background:#fff8e1; border-radius:6px; padding:8px;"
             )
 
-        if gmail_oauth.disponivel():
-            self.btn_ligar.setEnabled(True)
+        self.btn_ligar.setVisible(disponivel)
+        self.btn_ligar.setEnabled(disponivel)
+        self.btn_desligar.setVisible(ligado)
+
+        if disponivel:
             self.lbl_detalhe.setText(
                 "Carregue em «Ligar conta Google da oficina» e autorize com o email "
                 "da oficina. O browser abre-se sozinho e só é preciso fazer isto uma vez."
             )
         else:
-            self.btn_ligar.setEnabled(False)
             self.lbl_detalhe.setText(
-                "A ligação à conta Google ainda não está disponível neste pacote: "
-                "falta o ficheiro credentials.json (cliente OAuth do Google) ou as "
-                "bibliotecas Google. Entretanto, os emails continuam a sair pela conta "
-                "da aplicação."
+                "O envio está a funcionar pela conta da aplicação. A ligação à conta "
+                "Google da oficina não está disponível nesta versão."
             )
-
-        self.btn_desligar.setEnabled(gmail_oauth.configurado())
 
     def _ligar(self):
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
