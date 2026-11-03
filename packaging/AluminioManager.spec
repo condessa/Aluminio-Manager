@@ -21,6 +21,7 @@ datas.append((os.path.join(BASE, "hcsoftware.ico"), "."))
 datas.append((os.path.join(BASE, "hcsoftware.png"), "."))
 datas.append((os.path.join(BASE, "hcsoftware-logo.png"), "."))
 datas.append((os.path.join(ROOT, "icons", "aluminio_256.png"), "icons"))
+datas.append((os.path.join(BASE, "aluminio.ico"), "."))
 
 a = Analysis(
     [os.path.join(ROOT, "main.py")],

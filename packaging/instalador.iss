@@ -24,7 +24,7 @@ PrivilegesRequired=lowest
 OutputDir=dist
 OutputBaseFilename=AluminioManager-Setup-{#AppVersion}
 SetupIconFile={#SourcePath}\aluminio.ico
-UninstallDisplayIcon={app}\{#AppExe}
+UninstallDisplayIcon={app}\_internal\aluminio.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -40,9 +40,9 @@ Name: "desktopicon"; Description: "Criar um atalho no ambiente de trabalho"; Gro
 Source: "dist\AluminioManager\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\{#AppExe}"
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\_internal\aluminio.ico"
 Name: "{group}\Desinstalar o {#AppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\{#AppExe}"; Tasks: desktopicon
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\_internal\aluminio.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Abrir o {#AppName}"; Flags: nowait postinstall skipifsilent
