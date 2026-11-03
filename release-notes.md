@@ -7,7 +7,7 @@ de ativação e sem limite de funcionalidades.
 - **Windows:** executável portátil, sem instalação.
 - **Base de dados SQLite**: um ficheiro local, sem servidor, sem MySQL e sem configuração.
 - Primeira utilização sem contas: o administrador é criado no primeiro arranque.
-- Orçamentos por email pela conta da aplicação ou pela conta Google da oficina (OAuth).
+- Orçamentos por email pela conta da aplicação, por **SMTP da oficina** (Outlook, SAPO, domínio próprio) ou Google (OAuth).
 
 ### Instalação
 

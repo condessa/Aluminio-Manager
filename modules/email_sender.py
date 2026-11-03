@@ -44,18 +44,35 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
     valor     = float(obra.get("valor_orcamento",0) or 0)
 
     # Conta da oficina (OAuth) tem prioridade; senão usa-se a conta da aplicação.
+    # Prioridade: SMTP da oficina > conta Google > conta da aplicação.
+    smtp_config = None
+    usar_smtp_oficina = False
+    try:
+        from modules import smtp_config as _smtp
+        smtp_config = _smtp
+        usar_smtp_oficina = _smtp.configurado(oficina)
+    except Exception:
+        pass
+
     try:
         from modules import gmail_oauth
-        usar_oauth = gmail_oauth.configurado() and gmail_oauth.bibliotecas_instaladas()
+        usar_oauth = (not usar_smtp_oficina) and gmail_oauth.configurado() \
+            and gmail_oauth.bibliotecas_instaladas()
     except Exception:
         gmail_oauth = None
         usar_oauth = False
 
-    if usar_oauth:
+    if usar_smtp_oficina:
+        smtp_user = oficina.get("smtp_user") or ""
+        smtp_pass = None
+        remetente = (oficina.get("email") or "").strip() or smtp_user
+    elif usar_oauth:
         smtp_user = gmail_oauth.conta() or oficina.get("email", "")
         smtp_pass = None
+        remetente = smtp_user
     else:
         smtp_user, smtp_pass = _credenciais()
+        remetente = smtp_user
 
     # Gerar PDF
     try:
@@ -97,7 +114,7 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
 </body></html>"""
 
     msg = MIMEMultipart("mixed")
-    msg["From"]    = f"{nome_emp} <{smtp_user}>"
+    msg["From"]    = f"{nome_emp} <{remetente}>"
     msg["To"]      = f"{nome_cli} <{email_cli}>"
     msg["Subject"] = f"Orçamento {num_obra} — {descricao}"
     msg["Reply-To"] = oficina.get("email", smtp_user)
@@ -112,7 +129,9 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
     msg.attach(pdf_part)
 
     try:
-        if usar_oauth:
+        if usar_smtp_oficina:
+            smtp_config.enviar(msg, smtp_config.valores(oficina))
+        elif usar_oauth:
             gmail_oauth.enviar_mensagem(msg)
         else:
             with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
