@@ -23,8 +23,7 @@ class MainWindow(QMainWindow):
     def __init__(self, utilizador):
         super().__init__()
         self.utilizador = utilizador
-        from version import VERSION as _versao_janela
-        self.setWindowTitle(f"Aluminios Manager v{_versao_janela} by HCsoftware")
+        self.setWindowTitle("Aluminios Manager by HCsoftware")
         self.setMinimumSize(1200, 720)
         self.resize(1400, 820)
 
@@ -59,8 +58,7 @@ class MainWindow(QMainWindow):
 
         # Timer de inactividade — bloqueia após 5 minutos
         self._inact_segundos = 60
-        from version import VERSION as _versao_base
-        self._titulo_base = f"Aluminios Manager v{_versao_base} by HCsoftware"
+        self._titulo_base = "Aluminios Manager by HCsoftware"
         self._inact_timer = QTimer(self)
         self._inact_timer.setInterval(1000)
         self._inact_timer.timeout.connect(self._tick_inatividade)
@@ -90,15 +88,7 @@ class MainWindow(QMainWindow):
         lay = QVBoxLayout(sb); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
         logo = QWidget(); logo.setStyleSheet("border-bottom:1px solid rgba(255,255,255,0.1);")
         ll = QVBoxLayout(logo); ll.setContentsMargins(16,18,16,14)
-        from modules.marca import logo_wordmark
-        t = QLabel()
-        imagem = logo_wordmark(150)
-        if imagem.isNull():
-            t.setText("Aluminios Manager")
-            t.setStyleSheet("font-size:15px;font-weight:800;color:#e8edf2;")
-        else:
-            t.setPixmap(imagem)
-            t.setStyleSheet("background:transparent;")
+        t = QLabel("⚙️  Aluminios Manager"); t.setStyleSheet("font-size:15px;font-weight:800;color:#e8edf2;")
         # Carregar nome da firma da BD
         nome_firma = "Gestão de Oficina"
         try:

@@ -20,6 +20,7 @@ if os.path.exists(os.path.join(ROOT, "credentials.json")):
 datas.append((os.path.join(BASE, "hcsoftware.ico"), "."))
 datas.append((os.path.join(BASE, "hcsoftware.png"), "."))
 datas.append((os.path.join(BASE, "hcsoftware-logo.png"), "."))
+datas.append((os.path.join(ROOT, "icons", "aluminio_256.png"), "icons"))
 
 a = Analysis(
     [os.path.join(ROOT, "main.py")],
@@ -45,7 +46,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
-    icon=os.path.join(BASE, "hcsoftware.ico"),
+    icon=os.path.join(BASE, "aluminio.ico"),
 )
 
 coll = COLLECT(

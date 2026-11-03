@@ -10,15 +10,16 @@ from modules import registo
 
 
 def _caminho_icone():
+    """Ícone da janela: o da aplicação (janela AM), com o HC como alternativa."""
     from pathlib import Path
 
     bases = []
     if getattr(sys, "_MEIPASS", None):
         bases.append(Path(sys._MEIPASS))
     aqui = Path(__file__).resolve().parent
-    bases += [aqui, aqui / "packaging"]
-    for base in bases:
-        for nome in ("hcsoftware.ico", "hcsoftware.png"):
+    bases += [aqui, aqui / "packaging", aqui / "icons"]
+    for nome in ("aluminio_256.png", "aluminio.ico", "hcsoftware.ico", "hcsoftware.png"):
+        for base in bases:
             caminho = base / nome
             if caminho.exists():
                 return str(caminho)
