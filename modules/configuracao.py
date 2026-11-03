@@ -8,28 +8,18 @@ from db.database import get_connection
 CORES={"aco":"#1a2332","laranja":"#d4560a","alum":"#e8edf2","branco":"#f8fafc","cinza":"#6b7c8e"}
 
 def oficina_configurada():
-    """Verifica se a oficina já foi configurada pelo utilizador"""
+    """True se a oficina já tiver nome — o resto pode ficar para depois."""
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
-        
-        # Verificar se existem campos preenchidos MANUALMENTE
-        # (ignorar valores padrão como 'Alumínios')
-        cur.execute("""
-            SELECT COUNT(*) as total FROM oficina 
-            WHERE chave IN ('nome', 'nif', 'morada', 'localidade', 'telefone', 'email')
-            AND valor IS NOT NULL 
-            AND valor != '' 
-            AND valor != 'Alumínios'  # ← Ignorar valor padrão
-        """)
+        cur.execute("SELECT valor FROM oficina WHERE chave='nome'")
         r = cur.fetchone()
         cur.close()
         conn.close()
-        
-        # Considera configurado se pelo menos 3 campos estiverem preenchidos
-        return r and r["total"] >= 3
-    except:
+        return bool(r and str(r.get("valor") or "").strip())
+    except Exception:
         return False
+
 
 def guardar_oficina(dados):
     conn=get_connection(); cur=conn.cursor()

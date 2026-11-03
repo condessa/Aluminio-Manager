@@ -150,26 +150,28 @@ class LoginDialog(QDialog):
         self.utilizador = None
         from version import VERSION as _versao
         self.setWindowTitle(f"AluminioManager v{_versao} — Login")
-        self.setFixedSize(360, 300)
+        self.setFixedSize(400, 430)
         self._build()
 
     def _build(self):
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(40, 36, 40, 36)
-        lay.setSpacing(14)
+        lay.setContentsMargins(40, 24, 40, 24)
+        lay.setSpacing(10)
 
-        from modules.marca import logo_tile
+        from modules.marca import logo_wordmark
+        imagem_logo = logo_wordmark(150)
         logo = QLabel()
-        logo.setPixmap(logo_tile(84))
+        logo.setPixmap(imagem_logo)
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logo.setStyleSheet("background:transparent;")
-        lay.addWidget(logo)
+        logo.setFixedSize(imagem_logo.width() + 32, imagem_logo.height() + 20)
+        logo.setStyleSheet("background:#1a2332;border-radius:12px;")
+        lay.addWidget(logo, 0, Qt.AlignmentFlag.AlignHCenter)
 
         titulo = QLabel("AluminioManager")
         titulo.setStyleSheet("font-size:18px;font-weight:800;")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        sub = QLabel("Gestão de Oficina de Alumínios")
+        sub = QLabel("por HCsoftware · Gestão de Oficina de Alumínios")
         sub.setStyleSheet(f"font-size:11px;color:{CORES['cinza']};")
         sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
