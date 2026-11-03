@@ -700,9 +700,8 @@ class ObrasWidget(QWidget):
 
     def _notificar_cliente_estado(self, oid, novo_estado):
         try:
-            from modules.email_sender import _credenciais
+            from modules.email_sender import remetente, enviar_mensagem
             from modules.dao import get_cliente
-            import smtplib
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
             from modules.configuracao import carregar_oficina
@@ -729,7 +728,7 @@ class ObrasWidget(QWidget):
             }
             estado_txt = ESTADOS_TEXTO.get(novo_estado, novo_estado)
 
-            smtp_user, smtp_pass = _credenciais()
+            remetente_msg = remetente(oficina)
 
             corpo_html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/></head>
@@ -753,15 +752,13 @@ class ObrasWidget(QWidget):
 </body></html>"""
 
             msg = MIMEMultipart("alternative")
-            msg["From"]    = f"{nome_emp} <{smtp_user}>"
+            msg["From"]    = f"{nome_emp} <{remetente_msg}>"
             msg["To"]      = f"{nome_cli} <{email_cli}>"
             msg["Subject"] = f"Actualização obra {num_obra} — {estado_txt}"
 
             msg.attach(MIMEText(corpo_html, "html", "utf-8"))
 
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
-                s.login(smtp_user, smtp_pass)
-                s.send_message(msg)
+            enviar_mensagem(msg, oficina)
             print(f"[EMAIL] Notificação enviada para {email_cli}")
             from PyQt6.QtWidgets import QMessageBox
             msg = QMessageBox()
@@ -865,9 +862,17 @@ class ObrasWidget(QWidget):
             obra = self.dao.get_obra(oid)
         except:
             return
+        estado_antes = obra.get("estado") if obra else None
         d = ObraDialog(self.dao, self.user, obra, parent=self)
         if d.exec() == QDialog.DialogCode.Accepted:
             self.refresh()
+            try:
+                nova = self.dao.get_obra(oid)
+                if (nova and nova.get("estado") != estado_antes
+                        and nova.get("notificar_cliente")):
+                    self._notificar_cliente_estado(oid, nova["estado"])
+            except Exception:
+                pass
 
     def _historico(self, oid):
         try:

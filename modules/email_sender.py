@@ -14,6 +14,46 @@ def _credenciais():
     SENHA_ENC = 'gAAAAABpsq-YEJdhqO2Srg33taPuR3Uj1NmbqeVh3raQtKHGZ_QelrEjdYcZvCytVn6lGxHErk1anhh_Pzo-PKebgjeoxAX5m8op9k8wZgv80AO-q1H6IPY='
     return f.decrypt(EMAIL_ENC.encode()).decode(), f.decrypt(SENHA_ENC.encode()).decode()
 
+def _transporte(oficina):
+    """Escolhe o envio: SMTP da oficina > Google > conta da aplicação."""
+    try:
+        from modules import smtp_config
+        if smtp_config.configurado(oficina):
+            return "smtp", smtp_config, smtp_config.valores(oficina)
+    except Exception:
+        pass
+    try:
+        from modules import gmail_oauth
+        if gmail_oauth.configurado() and gmail_oauth.bibliotecas_instaladas():
+            return "google", gmail_oauth, None
+    except Exception:
+        pass
+    user, password = _credenciais()
+    return "conta", None, (user, password)
+
+
+def remetente(oficina):
+    modo, modulo, dados = _transporte(oficina)
+    if modo == "smtp":
+        return (oficina.get("email") or "").strip() or dados["user"]
+    if modo == "google":
+        return modulo.conta() or (oficina.get("email") or "").strip()
+    return dados[0]
+
+
+def enviar_mensagem(msg, oficina):
+    """Envia uma mensagem MIME pelo transporte configurado."""
+    modo, modulo, dados = _transporte(oficina)
+    if modo == "smtp":
+        modulo.enviar(msg, dados)
+    elif modo == "google":
+        modulo.enviar_mensagem(msg)
+    else:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as servidor:
+            servidor.login(dados[0], dados[1])
+            servidor.send_message(msg)
+
+
 def _gerar_pdf_bytes(html):
     from PyQt6.QtPrintSupport import QPrinter
     from PyQt6.QtGui import QTextDocument, QPageLayout, QPageSize
@@ -43,36 +83,7 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
     descricao = obra.get("descricao","")
     valor     = float(obra.get("valor_orcamento",0) or 0)
 
-    # Conta da oficina (OAuth) tem prioridade; senão usa-se a conta da aplicação.
-    # Prioridade: SMTP da oficina > conta Google > conta da aplicação.
-    smtp_config = None
-    usar_smtp_oficina = False
-    try:
-        from modules import smtp_config as _smtp
-        smtp_config = _smtp
-        usar_smtp_oficina = _smtp.configurado(oficina)
-    except Exception:
-        pass
-
-    try:
-        from modules import gmail_oauth
-        usar_oauth = (not usar_smtp_oficina) and gmail_oauth.configurado() \
-            and gmail_oauth.bibliotecas_instaladas()
-    except Exception:
-        gmail_oauth = None
-        usar_oauth = False
-
-    if usar_smtp_oficina:
-        smtp_user = oficina.get("smtp_user") or ""
-        smtp_pass = None
-        remetente = (oficina.get("email") or "").strip() or smtp_user
-    elif usar_oauth:
-        smtp_user = gmail_oauth.conta() or oficina.get("email", "")
-        smtp_pass = None
-        remetente = smtp_user
-    else:
-        smtp_user, smtp_pass = _credenciais()
-        remetente = smtp_user
+    remetente_msg = remetente(oficina)
 
     # Gerar PDF
     try:
@@ -114,7 +125,7 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
 </body></html>"""
 
     msg = MIMEMultipart("mixed")
-    msg["From"]    = f"{nome_emp} <{remetente}>"
+    msg["From"]    = f"{nome_emp} <{remetente_msg}>"
     msg["To"]      = f"{nome_cli} <{email_cli}>"
     msg["Subject"] = f"Orçamento {num_obra} — {descricao}"
     msg["Reply-To"] = oficina.get("email", smtp_user)
@@ -129,14 +140,7 @@ def enviar_orcamento(obra, cliente, oficina, html_orcamento):
     msg.attach(pdf_part)
 
     try:
-        if usar_smtp_oficina:
-            smtp_config.enviar(msg, smtp_config.valores(oficina))
-        elif usar_oauth:
-            gmail_oauth.enviar_mensagem(msg)
-        else:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
-                s.login(smtp_user, smtp_pass)
-                s.send_message(msg)
+        enviar_mensagem(msg, oficina)
         print(f"[EMAIL] Orçamento enviado para {email_cli}")
     except smtplib.SMTPAuthenticationError as e:
         raise ValueError("Falha na autenticação do email. Contacte o suporte.") from e
