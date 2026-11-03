@@ -118,7 +118,8 @@ class ClientesWidget(QWidget):
         self.table.setRowCount(len(clientes))
 
         # Cor única para todas as colunas
-        COR_TEXTO  = "#1a2332"
+        from modules.temas import cor_texto
+        COR_TEXTO = cor_texto()
         COR_LARANJA = "#d4560a"
 
         for r, c in enumerate(clientes):

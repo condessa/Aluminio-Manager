@@ -1,3 +1,4 @@
+from modules.temas import cor_texto
 from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QLineEdit,
     QTableWidget,QTableWidgetItem,QHeaderView,QDialog,QFormLayout,QComboBox,QDoubleSpinBox,
     QDateEdit,QTextEdit,QMessageBox,QFrame,QTabWidget,QDialogButtonBox)
@@ -179,7 +180,6 @@ class ObraFinanceiroDialog(QDialog):
             cor="#1e7e44" if tipo=="receita" else "#c0392b"
             for c,v in enumerate([tipo,m.get("categoria",""),m.get("descricao",""),
                                    f"{float(m.get('valor',0)):,.2f} €",str(m.get("data",""))[:10]]):
-                from modules.temas import cor_texto
                 item=QTableWidgetItem(v); item.setForeground(QColor(cor if c==0 else cor_texto()))
                 self.tbl.setItem(r,c,item)
 

@@ -1,3 +1,4 @@
+from modules.temas import cor_texto
 from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QLineEdit,
     QTableWidget,QTableWidgetItem,QHeaderView,QDialog,QFormLayout,QComboBox,QDoubleSpinBox,
     QTextEdit,QMessageBox,QCheckBox)
@@ -406,7 +407,7 @@ class HistoricoStockDialog(QDialog):
             for c, v in enumerate(vals):
                 item = QTableWidgetItem(v)
                 item.setBackground(QColor(bg))
-                item.setForeground(QColor(fg if c == 1 else "#1a2332"))
+                item.setForeground(QColor(fg if c == 1 else cor_texto()))
                 if c in (2,3): item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(r, c, item)
 

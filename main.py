@@ -122,6 +122,8 @@ def main():
         pass
 
     app = QApplication(sys.argv)
+    from modules.temas import aplicar_paleta_clara
+    aplicar_paleta_clara(app)
     app.setApplicationName("Aluminios Manager by HCsoftware")
     icone = _caminho_icone()
     if icone:
