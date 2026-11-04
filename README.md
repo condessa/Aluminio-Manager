@@ -74,6 +74,19 @@ aluminio-manager
 
 ---
 
+## 📤 Publicar uma versão (mantenedor)
+
+Criar uma tag `v*` faz o GitHub Actions gerar o `.deb` e o `Setup.exe` e publicar a release.
+Depois de publicada, copiar os ficheiros para a pasta partilhada (acesso à VM Windows):
+
+```bash
+bash scripts/copiar_para_partilha.sh            # ~/PartilhaWindows
+bash scripts/copiar_para_partilha.sh /outro/caminho
+```
+
+O script lê a última release, descarrega o `.deb` e o `Setup.exe` e ignora os que já
+existem com o mesmo tamanho.
+
 ## 🔧 Perfis de utilizador
 
 | Perfil | Acesso |
