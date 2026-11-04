@@ -419,6 +419,20 @@ class ConfiguracaoDialog(QDialog):
 
         lay.addWidget(tabs)
 
+        from PyQt6.QtWidgets import QComboBox
+        from modules.temas import TEMA as _tema_guardado
+        linha_tema = QHBoxLayout()
+        linha_tema.addWidget(QLabel("🎨  Tema:"))
+        self.cmb_tema = QComboBox()
+        self.cmb_tema.addItem("Claro", "claro")
+        self.cmb_tema.addItem("Escuro", "escuro")
+        indice_tema = self.cmb_tema.findData(_tema_guardado)
+        if indice_tema >= 0:
+            self.cmb_tema.setCurrentIndex(indice_tema)
+        linha_tema.addWidget(self.cmb_tema)
+        linha_tema.addStretch(1)
+        lay.addLayout(linha_tema)
+
         bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
         bb.accepted.connect(self._guardar); bb.rejected.connect(self.reject)
         lay.addWidget(bb)
@@ -479,4 +493,14 @@ class ConfiguracaoDialog(QDialog):
             "iban":self.inp_iban.text().strip() if hasattr(self,"inp_iban") else "",
         })
         gerar_certificado(nome, email)
+        try:
+            from modules.temas import guardar_tema, TEMA as _tema_actual
+            novo_tema = self.cmb_tema.currentData() if hasattr(self, "cmb_tema") else _tema_actual
+            guardar_tema(novo_tema)
+            if novo_tema != _tema_actual:
+                QMessageBox.information(
+                    self, "Tema",
+                    "Tema guardado. Reinicie o programa para aplicar em todas as janelas.")
+        except Exception:
+            pass
         self.accept()
