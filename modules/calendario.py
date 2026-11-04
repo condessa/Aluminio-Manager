@@ -1,3 +1,4 @@
+from modules.temas import PALETA as CORES
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGridLayout, QScrollArea, QFrame, QDialog, QFormLayout, QLineEdit, QComboBox,
     QDateEdit, QTextEdit, QMessageBox, QSizePolicy)
@@ -101,13 +102,13 @@ class CalendarioWidget(QWidget):
 
         nav = QHBoxLayout()
         tit = QLabel("📅  Calendário")
-        tit.setStyleSheet("font-size:22px;font-weight:700;color:#1a2332;")
+        tit.setStyleSheet(f"font-size:22px;font-weight:700;color:{CORES['aco']};")
         nav.addWidget(tit); nav.addStretch()
 
         btn_prev = _btn("◀","btn_outline"); btn_prev.setFixedWidth(36)
         btn_prev.clicked.connect(self._mes_anterior)
         self.lbl_mes = QLabel()
-        self.lbl_mes.setStyleSheet("font-size:16px;font-weight:700;color:#1a2332;min-width:180px;")
+        self.lbl_mes.setStyleSheet(f"font-size:16px;font-weight:700;color:{CORES['aco']};min-width:180px;")
         self.lbl_mes.setAlignment(Qt.AlignmentFlag.AlignCenter)
         btn_next = _btn("▶","btn_outline"); btn_next.setFixedWidth(36)
         btn_next.clicked.connect(self._mes_seguinte)
@@ -157,7 +158,7 @@ class CalendarioWidget(QWidget):
         for c, d in enumerate(DIAS_PT):
             lbl = QLabel(d)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            cor = "#c0392b" if c >= 5 else "#1a2332"
+            cor = CORES["danger"] if c >= 5 else CORES["aco"]
             lbl.setStyleSheet(f"font-weight:700;font-size:12px;color:{cor};padding:4px;")
             hl.addWidget(lbl, 0, c)
         self.cal_layout.addWidget(header)
@@ -212,14 +213,14 @@ class CalendarioWidget(QWidget):
             cell.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
             if e_hoje:
-                cell.setStyleSheet("QFrame{background:#fff3e0;border:2px solid #d4560a;border-radius:6px;}")
+                cell.setStyleSheet(f"QFrame{{background:{CORES['destaque_fundo']};border:2px solid {CORES['laranja']};border-radius:6px;}}")
             elif e_fim_semana:
-                cell.setStyleSheet("QFrame{background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;}")
+                cell.setStyleSheet(f"QFrame{{background:{CORES['cartao2']};border:1px solid {CORES['alum_mid']};border-radius:6px;}}")
             else:
                 cell.setStyleSheet(f"QFrame{{background:{CORES['cartao']};border:1px solid {CORES['alum']};border-radius:6px;}}")
 
             lbl_dia = QLabel(str(dia))
-            cor_dia = COR_HOJE if e_hoje else ("#c0392b" if e_fim_semana else "#1a2332")
+            cor_dia = COR_HOJE if e_hoje else (CORES["danger"] if e_fim_semana else CORES["aco"])
             lbl_dia.setStyleSheet(f"font-weight:{'800' if e_hoje else '600'};font-size:13px;color:{cor_dia};")
             cell_lay.addWidget(lbl_dia)
 
@@ -232,7 +233,7 @@ class CalendarioWidget(QWidget):
 
             if len(mapa.get(dia,[])) > 3:
                 mais = QLabel(f"+{len(mapa[dia])-3} mais")
-                mais.setStyleSheet("color:#666;font-size:10px;")
+                mais.setStyleSheet(f"color:{CORES['cinza']};font-size:10px;")
                 cell_lay.addWidget(mais)
 
             cell_lay.addStretch()

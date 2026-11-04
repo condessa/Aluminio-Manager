@@ -43,7 +43,7 @@ _CLARO = {
     "alum": "#e8edf2", "alum_mid": "#c8d4de", "branco": "#ffffff",
     "cinza": "#6b7c8e", "laranja": "#d4560a",
     "danger": "#c0392b", "success": "#1e7e44", "warning": "#b8700a", "info": "#1a6fa8",
-    "erro_fundo": "#fdecea",
+    "erro_fundo": "#fdecea", "destaque_fundo": "#fff3e0",
 }
 
 _ESCURO = {
@@ -52,7 +52,7 @@ _ESCURO = {
     "alum": "#3a3a3a", "alum_mid": "#4a4a4a", "branco": "#2b2b2b",
     "cinza": "#a0a0a0", "laranja": "#e0702a",
     "danger": "#e06c60", "success": "#5fbf7f", "warning": "#e0a44a", "info": "#6aa9d8",
-    "erro_fundo": "#4a2620",
+    "erro_fundo": "#4a2620", "destaque_fundo": "#3a2a18",
 }
 
 PALETA = _ESCURO if TEMA == "escuro" else _CLARO
