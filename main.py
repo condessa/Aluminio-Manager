@@ -122,8 +122,9 @@ def main():
         pass
 
     app = QApplication(sys.argv)
-    from modules.temas import aplicar_paleta_clara
-    aplicar_paleta_clara(app)
+    app.setStyle("Fusion")
+    from modules.temas import aplicar_tema
+    aplicar_tema(app)
     app.setApplicationName("Aluminios Manager by HCsoftware")
     icone = _caminho_icone()
     if icone:
@@ -135,8 +136,7 @@ def main():
                 "HCsoftware.AluminioManager")
         except Exception:
             pass
-    app.setStyle("Fusion")
-    app.setStyleSheet("""
+    _estilo = """
         QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QDateEdit {
             background-color: #ffffff; color: #1a2332;
             border: 1px solid #c8d4de; border-radius: 4px;
@@ -161,7 +161,12 @@ def main():
             font-weight: 600; padding: 6px;
             border: none; border-bottom: 2px solid #c8d4de;
         }
-    """)
+    """
+    from modules.temas import PALETA as _C
+    _estilo = (_estilo.replace("#ffffff", _C["cartao"]).replace("#1a2332", _C["aco"])
+               .replace("#c8d4de", _C["alum_mid"]).replace("#f0f4f8", _C["cartao2"])
+               .replace("#e8edf2", _C["alum"]))
+    app.setStyleSheet(_estilo)
 
     # Inicializar BD
     try:

@@ -3,9 +3,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit,
 from PyQt6.QtCore import Qt
 from db.database import get_connection, hash_password
 
-CORES = {"aco":"#1a2332","laranja":"#d4560a","cinza":"#6b7c8e",
-         "alum":"#e8edf2","branco":"#f8fafc","danger":"#c0392b","success":"#1e7e44"}
-
+from modules.temas import PALETA as CORES
 SENHA_PADRAO = "admin123"
 
 

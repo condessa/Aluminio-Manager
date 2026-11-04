@@ -1,22 +1,12 @@
 from PyQt6.QtCore import QTimer
+from modules.temas import PALETA as CORES, cor_fundo
 
-def cor_fundo():
-    return "#f0f4f8"
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QLabel, QPushButton, QStackedWidget, QMessageBox, QFrame, QHBoxLayout)
 from PyQt6.QtCore import Qt
 import modules.dao as dao
 
-def cor_fundo():
-    return "#f0f4f8"
 
-
-def cor_fundo():
-    return "#f0f4f8"
-
-
-def cor_fundo():
-    return "#f0f4f8"
 
 
 class MainWindow(QMainWindow):
@@ -163,10 +153,10 @@ class MainWindow(QMainWindow):
 
     def _build_topbar(self):
         tb = QWidget(); tb.setFixedHeight(58)
-        tb.setStyleSheet("background:#f8fafc;border-bottom:1px solid #c8d4de;")
+        tb.setStyleSheet(f"background:{CORES['branco']};border-bottom:1px solid {CORES['alum_mid']};")
         lay = QHBoxLayout(tb); lay.setContentsMargins(22,0,22,0)
         self.tb_title = QLabel("Dashboard")
-        self.tb_title.setStyleSheet("font-size:20px;font-weight:800;color:#1a2332;")
+        self.tb_title.setStyleSheet(f"font-size:20px;font-weight:800;color:{CORES['aco']};")
         self.tb_add = QPushButton("＋  Adicionar")
         self.tb_add.setStyleSheet("background:#d4560a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:600;font-size:13px;")
         self.tb_add.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -309,6 +299,25 @@ class MainWindow(QMainWindow):
         if perfil in ("admin","gestor"):
             a_cfg = QAction("⚙️  Configurações", self); a_cfg.triggered.connect(self._configuracoes)
             m_fich.addAction(a_cfg); m_fich.addSeparator()
+        m_tema = m_fich.addMenu("🎨  Tema")
+        from modules.temas import TEMA as _tema
+        a_claro = QAction("Claro", self, checkable=True); a_claro.setChecked(_tema != "escuro")
+        a_escuro = QAction("Escuro", self, checkable=True); a_escuro.setChecked(_tema == "escuro")
+
+        def _escolher_tema(nome):
+            from modules.temas import guardar_tema
+            guardar_tema(nome)
+            a_claro.setChecked(nome == "claro")
+            a_escuro.setChecked(nome == "escuro")
+            QMessageBox.information(
+                self, "Tema",
+                "Tema guardado. Reinicie o programa para aplicar em todas as janelas.")
+
+        a_claro.triggered.connect(lambda: _escolher_tema("claro"))
+        a_escuro.triggered.connect(lambda: _escolher_tema("escuro"))
+        m_tema.addAction(a_claro); m_tema.addAction(a_escuro)
+        m_fich.addSeparator()
+
         a_sair = QAction("↩  Terminar Sessão", self); a_sair.triggered.connect(self._sair)
         m_fich.addAction(a_sair)
 
@@ -432,7 +441,7 @@ e os orçamentos passam a sair desse email (OAuth), sem palavras-passe.</p>
         tb = QTextBrowser()
         tb.setHtml(f"<html><body style='font-family:Arial,sans-serif;font-size:13px;color:#1a2332;padding:24px;line-height:1.7;'>{html}</body></html>")
         lay.addWidget(tb)
-        bw = QWidget(); bw.setStyleSheet("background:#f8fafc;border-top:1px solid #e8edf2;")
+        bw = QWidget(); bw.setStyleSheet(f"background:{CORES['branco']};border-top:1px solid {CORES['alum']};")
         bl = QHBoxLayout(bw); bl.setContentsMargins(16,10,16,10)
         btn = QPushButton("✕  Fechar"); btn.setFixedHeight(34)
         btn.setStyleSheet("background:#e8edf2;color:#1a2332;border:none;border-radius:8px;padding:0 20px;font-weight:600;")

@@ -6,7 +6,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import io
 from PyQt6.QtGui import QPixmap, QImage
-CORES={"aco":"#1a2332","aco_mid":"#2c3e55","laranja":"#d4560a","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","success":"#1e7e44","danger":"#c0392b","warning":"#b8700a"}
+from modules.temas import PALETA as CORES
 def _stat(ico,val,lbl,delta,up):
     bg_d="#d4edda" if up else "#fde8e0"; fg_d=CORES["success"] if up else CORES["danger"]
     f=QFrame(); f.setStyleSheet(f"background:{CORES['branco']};border:1px solid {CORES['alum_mid']};border-radius:12px;")
@@ -18,14 +18,18 @@ def _stat(ico,val,lbl,delta,up):
 def _mini_grafico_financeiro(receitas, despesas):
     """Devolve QPixmap com gráfico de barras receitas/despesas"""
     try:
-        fig, ax = plt.subplots(figsize=(4, 2.2), facecolor="white")
+        fig, ax = plt.subplots(figsize=(4, 2.2), facecolor=CORES["cartao"])
         bars = ax.bar(["Receitas", "Despesas"], [receitas, despesas],
-                      color=["#1e7e44", "#c0392b"], width=0.5, zorder=3)
+                      color=[CORES["success"], CORES["danger"]], width=0.5, zorder=3)
         for bar, val in zip(bars, [receitas, despesas]):
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(receitas,despesas)*0.02,
-                    f"{val:,.0f}€", ha="center", fontsize=8, fontweight="bold", color="#1a2332")
-        ax.set_facecolor("#fafbfc"); ax.grid(axis="y", alpha=0.3, zorder=0)
-        ax.tick_params(labelsize=8); ax.set_ylim(0, max(receitas, despesas, 1) * 1.2)
+                    f"{val:,.0f}€", ha="center", fontsize=8, fontweight="bold", color=CORES["aco"])
+        ax.set_facecolor(CORES["cartao2"])
+        ax.grid(axis="y", alpha=0.3, zorder=0, color=CORES["alum_mid"])
+        ax.tick_params(labelsize=8, colors=CORES["aco"])
+        for spine in ax.spines.values():
+            spine.set_color(CORES["alum_mid"])
+        ax.set_ylim(0, max(receitas, despesas, 1) * 1.2)
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v,_: f"{v:,.0f}€"))
         fig.tight_layout(pad=0.5)
         buf = io.BytesIO()
@@ -49,14 +53,15 @@ def _mini_grafico_obras(dados_estados):
         valores = list(dados_estados.values())
         cores   = [CORES_E.get(e, "#aabbcc") for e in estados]
         labels  = [LABELS.get(e, e) for e in estados]
-        fig, ax = plt.subplots(figsize=(4, 2.8), facecolor="white")
+        fig, ax = plt.subplots(figsize=(4, 2.8), facecolor=CORES["cartao"])
         wedges, texts, autotexts = ax.pie(valores, colors=cores, autopct="%1.0f%%",
             startangle=140, pctdistance=0.78,
-            wedgeprops={"edgecolor":"white","linewidth":1.5})
+            wedgeprops={"edgecolor":CORES["cartao"],"linewidth":1.5})
         for at in autotexts:
             at.set_fontsize(7); at.set_color("white"); at.set_fontweight("bold")
         ax.legend(wedges, [f"{l} ({v})" for l,v in zip(labels,valores)],
-                  loc="lower center", bbox_to_anchor=(0.5,-0.28), ncol=2, fontsize=7, frameon=False)
+                  loc="lower center", bbox_to_anchor=(0.5,-0.28), ncol=2, fontsize=7, frameon=False,
+                  labelcolor=CORES["aco"])
         fig.tight_layout(pad=0.3)
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=120, bbox_inches="tight")

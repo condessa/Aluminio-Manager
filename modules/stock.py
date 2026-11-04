@@ -7,8 +7,7 @@ from PyQt6.QtGui import QColor
 from datetime import date
 from db.database import get_connection
 
-CORES={"aco":"#1a2332","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","laranja":"#d4560a","danger":"#c0392b","warning":"#b8700a","success":"#1e7e44"}
-
+from modules.temas import PALETA as CORES
 def _fazer_movimento_financeiro(referencia, nome, unidade, qtd, preco_custo):
     from datetime import date
     conn = get_connection()

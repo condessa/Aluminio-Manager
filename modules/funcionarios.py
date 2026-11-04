@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
     QTableWidget,QTableWidgetItem,QHeaderView,QDialog,QFormLayout,QComboBox,QDateEdit,
     QDoubleSpinBox,QTextEdit,QMessageBox)
 from PyQt6.QtCore import Qt,QDate
-CORES={"aco":"#1a2332","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","laranja":"#d4560a","danger":"#c0392b","success":"#1e7e44"}
+from modules.temas import PALETA as CORES
 PERFIS=["admin","gestor","producao","vendas"]
 def _btn(t,o): b=QPushButton(t); b.setObjectName(o); b.setCursor(Qt.CursorShape.PointingHandCursor); return b
 

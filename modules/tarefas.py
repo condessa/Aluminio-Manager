@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
     QLineEdit,QTableWidget,QTableWidgetItem,QHeaderView,QDialog,QFormLayout,
     QComboBox,QDateEdit,QTextEdit,QMessageBox)
 from PyQt6.QtCore import Qt,QDate
-CORES={"aco":"#1a2332","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","laranja":"#d4560a","danger":"#c0392b","success":"#1e7e44","warning":"#b8700a"}
+from modules.temas import PALETA as CORES
 PRIORIDADES=["baixa","media","alta","urgente"]
 ESTADOS=["pendente","em_curso","concluida"]
 PRI_COR={"baixa":("#d4edda","#1e7e44"),"media":("#e8f0fa","#1a4a8a"),"alta":("#fff3cd","#b8700a"),"urgente":("#fde8e0","#c0392b")}

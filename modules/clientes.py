@@ -4,15 +4,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 def _btn(t,o): b=QPushButton(t); b.setObjectName(o); b.setCursor(Qt.CursorShape.PointingHandCursor); return b
 
-CORES = {
-    "branco": "#f8fafc",
-    "alum_mid": "#c8d4de",
-    "alum": "#e8edf2",
-    "laranja": "#d4560a",
-    "aco": "#1a2332",
-    "cinza": "#6b7c8e"
-}
-
+from modules.temas import PALETA as CORES
 class ClientesWidget(QWidget):
     def __init__(self, dao, user):
         super().__init__()

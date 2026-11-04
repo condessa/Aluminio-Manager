@@ -5,8 +5,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt
 from db.database import get_connection
 
-CORES={"aco":"#1a2332","laranja":"#d4560a","alum":"#e8edf2","branco":"#f8fafc","cinza":"#6b7c8e"}
-
+from modules.temas import PALETA as CORES
 def oficina_configurada():
     """True se a oficina já tiver nome — o resto pode ficar para depois."""
     try:

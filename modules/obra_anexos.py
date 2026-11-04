@@ -11,9 +11,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 
 ANEXOS_DIR = Path.home() / ".config" / "aluminio-manager" / "anexos"
-CORES = {"aco":"#1a2332","laranja":"#d4560a","branco":"#f8fafc",
-         "alum_mid":"#c8d4de","cinza":"#6b7c8e","danger":"#c0392b"}
-
+from modules.temas import PALETA as CORES
 ICONES_TIPO = {
     "imagem": "🖼️", "pdf": "📄", "documento": "📝", "outro": "📎"
 }

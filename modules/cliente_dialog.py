@@ -3,8 +3,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QTextEdit, QPushButton, QFrame, QWidget, QMessageBox)
 from PyQt6.QtCore import Qt
 
-CORES = {"aco":"#1a2332","laranja":"#d4560a","alum":"#e8edf2","branco":"#f8fafc","cinza":"#6b7c8e"}
-
+from modules.temas import PALETA as CORES
 def _inp(ph="", max_len=100):
     w = QLineEdit(); w.setPlaceholderText(ph); w.setFixedHeight(34)
     if max_len: w.setMaxLength(max_len)

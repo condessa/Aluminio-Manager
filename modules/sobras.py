@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
     QTableWidget,QTableWidgetItem,QHeaderView,QDialog,QFormLayout,QComboBox,QDoubleSpinBox,
     QDateEdit,QTextEdit,QMessageBox)
 from PyQt6.QtCore import Qt,QDate
-CORES={"aco":"#1a2332","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","danger":"#c0392b","success":"#1e7e44","warning":"#b8700a"}
+from modules.temas import PALETA as CORES
 EST_COR={"reutilizavel":("#d4edda","#1e7e44"),"desperdicio":("#fde8e0","#c0392b"),"vendido":("#e8f0fa","#1a4a8a")}
 def _btn(t,o): b=QPushButton(t); b.setObjectName(o); b.setCursor(Qt.CursorShape.PointingHandCursor); return b
 class SobraDialog(QDialog):

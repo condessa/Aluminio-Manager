@@ -5,20 +5,7 @@ from PyQt6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
 from PyQt6.QtCore import Qt,QDate
 from PyQt6.QtGui import QColor
 
-CORES = {
-    "aco": "#1a2332",
-    "aco_mid": "#2c3e55",
-    "laranja": "#d4560a",
-    "alum": "#e8edf2",
-    "alum_mid": "#c8d4de",
-    "branco": "#f8fafc",
-    "cinza": "#6b7c8e",
-    "success": "#1e7e44",
-    "danger": "#c0392b",
-    "warning": "#b8700a",
-    "info": "#1a6fa8"
-}
-
+from modules.temas import PALETA as CORES
 ESTADOS = ["orcamento", "confirmada", "em_producao", "em_montagem", "concluida", "cancelada", "em_espera"]
 ESTADOS_TEXTO = {
     "orcamento": "Orçamento",

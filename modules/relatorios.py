@@ -6,8 +6,7 @@ from PyQt6.QtGui import QTextDocument
 from datetime import date
 import subprocess
 
-CORES={"aco":"#1a2332","alum":"#e8edf2","alum_mid":"#c8d4de","branco":"#f8fafc","cinza":"#6b7c8e","laranja":"#d4560a","danger":"#c0392b","success":"#1e7e44","warning":"#b8700a"}
-
+from modules.temas import PALETA as CORES
 def gerar_html_obras(dao):
     try: obras=dao.listar_obras()
     except: obras=[]
