@@ -216,7 +216,7 @@ class CalendarioWidget(QWidget):
             elif e_fim_semana:
                 cell.setStyleSheet("QFrame{background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;}")
             else:
-                cell.setStyleSheet("QFrame{background:white;border:1px solid #e8edf2;border-radius:6px;}")
+                cell.setStyleSheet(f"QFrame{{background:{CORES['cartao']};border:1px solid {CORES['alum']};border-radius:6px;}}")
 
             lbl_dia = QLabel(str(dia))
             cor_dia = COR_HOJE if e_hoje else ("#c0392b" if e_fim_semana else "#1a2332")

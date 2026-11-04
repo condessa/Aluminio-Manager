@@ -33,11 +33,17 @@ def aplicar_mascara_telefone(inp: QLineEdit):
 
 def aplicar_validacao_email(inp: QLineEdit):
     """Valida email em tempo real — fica vermelho se inválido"""
+    from modules.temas import PALETA as _C
+
     def _verificar(texto):
         if texto and "@" not in texto:
-            inp.setStyleSheet("border: 1px solid #c0392b; background: #fdecea; border-radius: 4px; padding: 4px 8px;")
+            inp.setStyleSheet(
+                f"border:1px solid {_C['danger']}; background:{_C['erro_fundo']};"
+                f"color:{_C['aco']}; border-radius:4px; padding:4px 8px;")
         else:
-            inp.setStyleSheet("border: 1px solid #c8d4de; border-radius: 4px; padding: 4px 8px; background: white;")
+            inp.setStyleSheet(
+                f"border:1px solid {_C['alum_mid']}; background:{_C['cartao']};"
+                f"color:{_C['aco']}; border-radius:4px; padding:4px 8px;")
     inp.textChanged.connect(_verificar)
 
 def validar_cp(texto):

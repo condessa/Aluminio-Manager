@@ -237,7 +237,7 @@ class MainWindow(QMainWindow):
         t3.setStyleSheet("font-size:12px;color:#6b7c8e;")
         inp = QLineEdit(); inp.setEchoMode(QLineEdit.EchoMode.Password)
         inp.setPlaceholderText("Palavra-passe"); inp.setFixedHeight(40)
-        inp.setStyleSheet("border:2px solid #c8d4de;border-radius:8px;padding:0 12px;font-size:13px;background:white;")
+        inp.setStyleSheet(f"border:2px solid {CORES['alum_mid']};border-radius:8px;padding:0 12px;font-size:13px;background:{CORES['cartao']};color:{CORES['aco']};")
         lbl_erro = QLabel(""); lbl_erro.setStyleSheet("color:#c0392b;font-size:11px;font-weight:600;")
         lbl_erro.setAlignment(Qt.AlignmentFlag.AlignCenter)
         bw = QWidget(); bw.setStyleSheet("background:transparent;")

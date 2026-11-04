@@ -7,7 +7,7 @@ from modules.temas import PALETA as CORES
 def _inp(ph="", max_len=100):
     w = QLineEdit(); w.setPlaceholderText(ph); w.setFixedHeight(34)
     if max_len: w.setMaxLength(max_len)
-    w.setStyleSheet("background:white;border:1.5px solid #c8d4de;border-radius:6px;padding:2px 8px;font-size:12px;")
+    w.setStyleSheet(f"background:{CORES['cartao']};color:{CORES['aco']};border:1.5px solid {CORES['alum_mid']};border-radius:6px;padding:2px 8px;font-size:12px;")
     return w
 
 def _lbl(t, bold=False):
@@ -32,7 +32,7 @@ class ClienteDialog(QDialog):
 
         # Cabeçalho
         header = QFrame(); header.setFixedHeight(60)
-        header.setStyleSheet(f"background:{CORES['aco']};")
+        header.setStyleSheet("background:#1a2332;")
         hl = QHBoxLayout(header); hl.setContentsMargins(20,0,20,0)
         t = QLabel("👤  " + ("Novo Cliente" if not self.cliente else "Editar Cliente"))
         t.setStyleSheet("font-size:14px;font-weight:800;color:white;background:transparent;")
@@ -79,7 +79,7 @@ class ClienteDialog(QDialog):
         self.inp_notas.setPlaceholderText("Observações...")
         self.inp_notas.setFixedHeight(70)
         self.inp_notas.setStyleSheet(
-            "background:white;border:1.5px solid #c8d4de;border-radius:6px;padding:4px 8px;font-size:12px;")
+            f"background:{CORES['cartao']};color:{CORES['aco']};border:1.5px solid {CORES['alum_mid']};border-radius:6px;padding:4px 8px;font-size:12px;")
         frm.addRow(_lbl("Notas", bold=True), self.inp_notas)
 
         bl.addLayout(frm)

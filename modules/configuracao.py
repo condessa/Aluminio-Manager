@@ -91,7 +91,7 @@ class ConfiguracaoInicialDialog(QDialog):
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
 
         # ── Cabeçalho ──────────────────────────────────────────────────────
-        header = QFrame(); header.setStyleSheet(f"background:{CORES['aco']};")
+        header = QFrame(); header.setStyleSheet("background:#1a2332;")
         header.setFixedHeight(110)
         hl = QVBoxLayout(header); hl.setAlignment(Qt.AlignmentFlag.AlignCenter); hl.setSpacing(2)
         t1 = QLabel("⚙️  AluminioManager")
@@ -126,7 +126,7 @@ class ConfiguracaoInicialDialog(QDialog):
 
         def inp(placeholder, h=34):
             w = QLineEdit(); w.setPlaceholderText(placeholder); w.setFixedHeight(h)
-            w.setStyleSheet("background:white;border:1.5px solid #c8d4de;border-radius:6px;padding:2px 8px;")
+            w.setStyleSheet(f"background:{CORES['cartao']};color:{CORES['aco']};border:1.5px solid {CORES['alum_mid']};border-radius:6px;padding:2px 8px;")
             return w
 
         self.inp_nome   = inp("ex: Alumínios Silva, Lda.")
@@ -193,7 +193,7 @@ class ConfiguracaoInicialDialog(QDialog):
         self.btn_ligar_gmail = QPushButton("🔗  Ligar conta Gmail")
         self.btn_ligar_gmail.setFixedHeight(38)
         self.btn_ligar_gmail.setStyleSheet(
-            f"background:{CORES['aco']};color:white;border:none;"
+            f"background:#1a2332;color:white;border:none;"
             f"border-radius:8px;padding:0 16px;font-weight:700;font-size:12px;")
         self.btn_ligar_gmail.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_ligar_gmail.clicked.connect(self._ligar_gmail)
